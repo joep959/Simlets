@@ -145,14 +145,17 @@ function think(s, sim) {
 
   // --- score every action (utility AI) and pick the best ---
   const farmable = here === TERRAIN.FERTILE || here === TERRAIN.GRASS;
+  // hard limits = physically possible; judgements (hungry? danger?) are soft penalties the brain can learn to overrule
+  const canFarm = farmable && s.energy >= P.farmCost * 1.5;
+  const danger = 1 / (1 + 4 * threatScore);       // ~1 with harmless strangers about, small with a real threat close
   const sc = {
     flee:   threat ? threatScore * 1.6 : 0,
     hunt:   prey ? preyScore * (s.attackCd ? 0.6 : 1) : 0,
     eat:    food ? drive * foodWorth * 1.2 : 0,
     recall: mem ? 0.6 * drive * g[G.memory] : 0,
     breed:  seekMate && mate ? 1.3 : 0,
-    clone:  cloneNow && !threat ? 1.3 : 0,
-    farm:   farmable && ef > 0.5 && !threat ? g[G.farming] * 0.9 * (food ? 0.5 : 1) : 0,
+    clone:  cloneNow ? 1.3 * danger : 0,
+    farm:   canFarm ? g[G.farming] * 0.9 * (food ? 0.5 : 1) * (ef > 0.5 ? 1 : 0.1) * danger : 0,
     rest:   g[G.rest] * (night ? 1.2 : 0.5) * (food || threat ? 0.3 : 1),
     wander: 0.1 + g[G.wander] * 0.4 + (seekMate && !mate ? 0.3 : 0),
   };
@@ -168,7 +171,7 @@ function think(s, sim) {
     x[14] = ready ? 1 : 0; x[15] = s.age / s.maxAge; x[16] = 1;
     runBrain(s.brain, x, out);
     const avail = { flee: !!(threat || (s.alertTimer > 0 && s.alert)), hunt: !!prey, eat: !!food, recall: !!mem,
-                    breed: !!(seekMate && mate), clone: cloneNow && !threat, farm: sc.farm > 0, rest: true, wander: true };
+                    breed: !!(seekMate && mate), clone: cloneNow, farm: canFarm, rest: true, wander: true };
     s.baseScores = { ...sc };
     let corr = 0;
     BRAIN_OUT.forEach((k, o) => {

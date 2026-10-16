@@ -62,11 +62,12 @@ There is **no fitness function**. Selection happens on its own: energy comes onl
 | eat | 1.2 · drive · worth, where worth = clamp(net / (0.5·plantEnergy), 0, 1). **Optimal foraging:** net = digestion·energy − travel time·moving burn − handling time·idle burn. The item with the best net per tick is chosen; items with net ≤ 0 are ignored. Corpses are weighted by (0.5 + scavenge) |
 | recall | 0.6 · drive · memory (no food visible, a remembered spot exists) |
 | breed | 1.3 if seeking a mate and a compatible one is visible |
-| clone | 1.3 if breeding asexually this cycle (or the mate wait has expired) and no threat is visible |
-| farm | 0.9 · farming (× 0.5 if food is visible); needs fertile or grassland, energy > 50%, no threat |
+| clone | 1.3 · danger, if breeding asexually this cycle (or the mate wait has expired) |
+| farm | 0.9 · farming · (0.5 if food visible) · (0.1 if energy ≤ 50%) · danger. **Hard limits only:** on fertile or grassland, and energy ≥ 1.5 × farmCost |
 | rest | rest · (1.2 at night, else 0.5) · (0.3 if food or threat visible) |
 | wander | 0.1 + 0.4·wander (+0.3 if seeking a mate and none is visible) |
 
+- `danger` = 1 / (1 + 4·threatScore): about 1 when only harmless strangers are about, small when a real threat is close. It's a soft penalty, so the hybrid brain can learn to overrule it (previously any visible threat blocked farming and cloning outright).
 - `drive` = 1 + (hungerAt − energy fraction) when below the hunger threshold, otherwise 0.1 + 0.5·(1 − energy fraction).
 - `closeness` = 1 − 0.5·d/range.
 - **Side actions on a think:**
