@@ -225,6 +225,7 @@ NEAT-style clustering:
     - Normal seeding starts carnivores 20–35 tiles from prey, beyond sight.
     - Seeding tribes close together (`seedSpread` 0.3) plus a full-energy start (`founderEnergy` 1) raised carnivore kills 2–20× but still didn't make them persist, and crowding hurt overall stability. Defaults were left at 1 / 0.7.
     - In one baseline run, carnivores boomed to about 300 and crashed the prey population: classic predator overshoot. Once established, they can thrive; founding is the hard part.
+    - Lean predator founders (`leanPredators` 0.6, upkeep genes pulled toward moderate), alone and with full founder energy: no reliable improvement over 18 runs. Carnivores established in about 1 run in 9 regardless of lever (when they do, they persist and cycle, peaking near 340). Establishment looks like a **lottery**; more founding attempts (immigration, air-drops) is the realistic way to win it. Default left at 0.
 - Behaviour rules are fixed; only their weights evolve. Evolved brains (neuroevolution) would be v2.
 - There are no sexes, so there's no real cost of sex.
 

@@ -61,6 +61,7 @@ const PARAM_DEFS = [
   ['Population', 'tribeSize',        'Simlets per tribe',               2,    60,   1,     20],
   ['Population', 'seedSpread',       'Starting spread (share of map)',  0.1,  1,    0.05,  1],
   ['Population', 'founderEnergy',    'Founder starting energy',         0.2,  1,    0.05,  0.7],
+  ['Population', 'leanPredators',    'Lean predator founders',          0,    1,    0.05,  0],
   ['Population', 'maxPop',           'Population cap',                  100,  3000, 50,    1500],
 ];
 
@@ -101,6 +102,7 @@ const PARAM_TIPS = {
   tribeSize: 'Simlets per founder group, all close relatives of their founder. Also used for air-drops and immigrants.',
   seedSpread: 'How much of the map the starting tribes are scattered over. 1 = anywhere; 0.3 = all tribes start within a region about a third of the map across, so predators and prey share a landscape from day one.',
   founderEnergy: 'Energy the starting tribes (and air-drops and immigrants) arrive with, as a fraction of their maximum.',
+  leanPredators: 'When a starting tribe (or newcomer) happens to be meat-eating, pull its upkeep genes (size, lifespan, stamina, memory, smell) this far toward moderate values. 0 = fully random founders; 1 = all set to moderate. Gives predators a body they can afford to feed; evolution takes over from there.',
   maxPop: 'Hard population cap: at the cap, breeding is blocked. Keeps the browser responsive.',
 };
 

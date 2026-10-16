@@ -49,6 +49,13 @@ const Sim = {
   // A tribe = one new random founder genome + small variations, dropped together around (cx, cy)
   dropTribe(cx, cy, origin) {
     const founder = randomGenome(), founderBrain = newBrain();
+    // lean predator founders: a meat-eating founder has its upkeep genes nudged toward moderate values
+    // (a random predator is often a big, long-lived, high-stamina body it can't afford to feed)
+    if (P.leanPredators > 0 && founder[G.diet] > 0.66) {
+      const k = P.leanPredators;
+      for (const [gene, target] of [['size', 0.35], ['lifespan', 0.3], ['stamina', 0.45], ['memory', 0.3], ['smell', 0.5]])
+        founder[G[gene]] += (target - founder[G[gene]]) * k;
+    }
     const sp = Species.create(founder, null, this.tick);         // every new tribe starts its own species
     for (let i = 0; i < P.tribeSize; i++) {
       const g = mutateGenome(founder, 0.5, 0.05);
