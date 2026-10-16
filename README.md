@@ -20,8 +20,8 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 | Area | What's there |
 |---|---|
 | **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Restore default settings**, and all world sliders (hover a slider for what it does) |
-| **Map** | Scroll to zoom, drag to pan, click a simlet to select it. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
-| **Right panel** | Nothing selected: the **species list**. Simlet selected: its vitals, derived body stats and all 25 genes |
+| **Map** | Scroll to zoom, drag to pan, click a simlet to select it. The map key is collapsed under **Key ▸**. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
+| **Right panel** | Nothing selected: the **species list**. Simlet selected: **Highlight Family / Species** (gold parents, teal children, white siblings, lilac species-mates; click an ID to jump to it), vitals, body stats, brain and all genes |
 | **Bottom charts** | Population by diet · Species over time · Mean of any gene ± spread · Diet histogram |
 
 **Reading a simlet on the map**
