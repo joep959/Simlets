@@ -23,7 +23,6 @@ const MEAT_BITE = 2;          // energy per tick taken from a corpse (meat is qu
 const SOIL_MIN = 0.3;          // soil nutrients below this = dormant: no farming, no wild growth
 const SOIL_PER_ENERGY = 0.02;  // nutrients returned to the soil per unit of energy that rots there
 const VISION_AREA = 200;      // tiles² every simlet can see; the FOV gene only reshapes it (wide+short vs narrow+long)
-const BODY_COST = 5;          // energy per unit mass to build a child's body (corpses return 90% of it)
 
 // [section, key, label, min, max, step, default]
 const PARAM_DEFS = [
@@ -51,6 +50,7 @@ const PARAM_DEFS = [
   ['Costs',      'sprintMult',       'Sprint speed ×',                  1,    3,    0.1,   1.8],
   ['Costs',      'waterCost',        'Water movement cost ×',           1,    15,   0.5,   6],
   ['Costs',      'attackCost',       'Attack cost',                     0,    10,   0.5,   2],
+  ['Costs',      'bodyCost',         'Body energy (per unit mass)',     1,    20,   0.5,   5],
   ['Costs',      'breedCost',        'Breeding overhead',               0,    30,   1,     6],
   ['Costs',      'farmCost',         'Farming cost',                    1,    40,   1,     8],
   ['Costs',      'farmYieldFertile', 'Farm yield on fertile ×',         0,    4,    0.1,   2.0],
@@ -87,6 +87,7 @@ const PARAM_TIPS = {
   sprintMult: 'Sprint speed as a multiple of top speed. Cost rises with the square: 1.8× speed costs about 3.2×.',
   waterCost: 'Movement cost multiplier while in water. Speed is also halved in water.',
   attackCost: 'Energy an attacker spends per attack (bigger attackers pay more). A target that survives loses half this.',
+  bodyCost: 'Energy stored in a body per unit of mass. Building a child costs this much, and 90% of it comes back as meat when the body dies. Higher = babies are dearer for everyone, but corpses and prey are richer meals.',
   breedCost: 'Overhead of breeding, lost on top of the energy given to the children. The initiator pays it in full, the mate pays half.',
   farmCost: 'Energy a simlet spends each time it farms.',
   farmYieldFertile: 'Crop energy produced per unit of farming energy on fertile land. Above 1 = farming is a net gain, if the farmer gets to eat the crop.',
@@ -99,6 +100,8 @@ const PARAM_TIPS = {
 
 const P = {};
 for (const d of PARAM_DEFS) P[d[1]] = d[6];
+P.preyValue = 0;   // experiment flag: 1 = hunt by expected net gain
+P.carnRest = 0;    // experiment flag: 1 = meat-eaters rest more cheaply
 
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 function gauss() {   // standard normal (Box-Muller)

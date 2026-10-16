@@ -155,7 +155,7 @@ const Sim = {
   },
   onDeath(s) {
     this.deaths[s.cause]++;
-    const e = BODY_COST * s.mass * 0.9 + Math.max(0, s.energy) * 0.8;
+    const e = P.bodyCost * s.mass * 0.9 + Math.max(0, s.energy) * 0.8;
     Food.add({ x: s.x, y: s.y, e, e0: e, born: this.tick, ready: this.tick, type: 2 });
   },
 
@@ -167,7 +167,7 @@ const Sim = {
     a.energy -= ca + (b ? overhead : overhead * 1.5);
     if (b) b.energy -= cb + overhead * 0.5;
     // initiator's brood gene sets the max litter; litter shrinks if the energy can't build that many bodies
-    const n = Math.max(1, Math.min(a.brood, Math.floor((ca + cb) / (BODY_COST * a.mass * 1.6))));
+    const n = Math.max(1, Math.min(a.brood, Math.floor((ca + cb) / (P.bodyCost * a.mass * 1.6))));
     const each = (ca + cb) / n;
     let born = 0;
     for (let k = 0; k < n; k++) {
@@ -175,7 +175,7 @@ const Sim = {
       const c = new Simlet(g, clamp(a.x + gauss() * 0.8, 0.5, WORLD_W - 0.5), clamp(a.y + gauss() * 0.8, 0.5, WORLD_H - 0.5),
                            0, (b ? Math.max(a.gen, b.gen) : a.gen) + 1, b ? [a.id, b.id] : [a.id]);
       // building the body costs energy; if the share can't cover body + a little reserve, the child isn't viable
-      const left = each - BODY_COST * c.mass;
+      const left = each - P.bodyCost * c.mass;
       if (left < c.maxEnergy * 0.1) { this.stillborn++; continue; }
       c.energy = Math.min(left, c.maxEnergy);
       c.species = a.species; Species.assign(c, this.tick);
