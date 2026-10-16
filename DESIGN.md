@@ -238,8 +238,14 @@ NEAT-style clustering:
   - But simlets **hoard**: stores fill and are rarely eaten, and thrift evolved to 0.33–0.92. Indoor time is still only 3–12% in bust.
 
 - **Boom rot** (`boomRot`, default ×2): wild plants and field crops age faster in boom. Stored food never rots.
-  - Test (5 of 6 runs): stores fuller and draining in winter on 2 of 3 maps (map 3: 88 → 55; map 2: 500 → 443, vs map 3 at ×1: 57 → 39). Map 1 still hoards (stores grow through bust).
-  - Survival mixed: lowest bust 173 vs 85 (map 3), 275 vs 353 (map 1).
+  - **Test (3 maps, ×1 vs ×2):**
+
+    | | Map 1 | Map 2 | Map 3 |
+    |---|---|---|---|
+    | Lowest bust pop, ×1 / ×2 | 353 / 275 | 609 / 301 | 85 / 173 |
+
+    - Stores: map 2 at ×1 gave the best pattern seen (535 → 1,020 → 545 through the year); ×2 drained on maps 2 and 3, and map 1 hoarded.
+    - The effect is smaller than the map-to-map noise. **Kept at ×2 (Joe's choice)** for storage pressure.
 
 ## 10. Seeding and newcomers
 
