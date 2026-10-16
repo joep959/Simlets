@@ -47,6 +47,25 @@ const UI = {
     };
     $('brainRules').onclick = () => setBrain('rules');
     $('brainHybrid').onclick = () => setBrain('hybrid');
+    $('worldSave').onclick = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(Save.serialize())], { type: 'application/json' }));
+      a.download = `simlets-world-t${Sim.tick}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    };
+    $('worldLoad').onclick = () => $('worldFile').click();
+    $('worldFile').onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      f.text().then(t => {
+        try {
+          Save.restore(JSON.parse(t));
+          for (const k in this.paramInputs) this.paramInputs[k]();       // sliders show the loaded settings
+          setBrain(Brain.mode);
+          this.selected = null; this.follow = false; this.setRunning(false); this.setMode('run');
+          this.renderInspector(true); this.updateStats(); Charts.draw();
+        } catch (err) { alert('Could not load world: ' + err.message); }
+      });
+      e.target.value = '';
+    };
     $('btnDrop').onclick = () => this.armDrop(!this.dropArmed);
     $('btnReseed').onclick = $('btnReseed2').onclick = () => this.reseed();
 

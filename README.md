@@ -19,7 +19,7 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 
 | Area | What's there |
 |---|---|
-| **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Restore default settings**, and all world sliders (hover a slider for what it does) |
+| **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Save world… / Load world…** (the whole world as a file, so experiments survive reloads), **Restore default settings**, and all world sliders (hover a slider for what it does) |
 | **Map** | Scroll to zoom, drag to pan, click a simlet to select it. The map key is collapsed under **Key ▸**. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
 | **Right panel** | Nothing selected: the **species list**. Simlet selected: **Highlight Family / Species** (gold parents, teal children, white siblings, lilac species-mates; click an ID to jump to it), vitals, body stats, brain and all genes |
 | **Bottom charts** | Population by diet · Species over time · Mean of any gene ± spread · Diet histogram |
@@ -92,6 +92,7 @@ Every gene has a cost or a trade-off. Hover a gene in the inspector for the spec
 | `js/world.js` | Terrain, map generation, save/load, food storage, seasons, day/night |
 | `js/simlet.js` | A simlet's body, and its sense → decide → act behaviour |
 | `js/sim.js` | The tick loop, seeding, air-drops/immigration, breeding, stats history |
+| `js/save.js` | Save and load whole worlds (JSON) |
 | `js/render.js`, `js/charts.js`, `js/ui.js`, `js/main.js` | Drawing, charts, panels and controls, main loop |
 | `tools/headless.js` | Runs the sim in Node without a browser, for balance tests |
 | `DESIGN.md` | How the model works, the formulas, and the tuning history |

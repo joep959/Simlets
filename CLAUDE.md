@@ -4,7 +4,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## Architecture
 
-- Plain HTML/JS/CSS, **no build step and no server**: it must work by double-clicking `index.html` (file://). So **no ES modules**. Every `js/*.js` is a classic script sharing globals, loaded in the order in `index.html`: config → genome → brain → species → world → simlet → sim → render → charts → ui → main.
+- Plain HTML/JS/CSS, **no build step and no server**: it must work by double-clicking `index.html` (file://). So **no ES modules**. Every `js/*.js` is a classic script sharing globals, loaded in the order in `index.html`: config → genome → brain → species → world → simlet → sim → save → render → charts → ui → main.
 - **Version control:** git repo on `main` (the hybrid brain was built on `hybrid-brain` and merged; the first commit is the pre-brain snapshot). Do risky work on a branch and commit often so Joe can always roll back; merge when he says so.
 - Key globals:
   - `P`: live slider values
@@ -26,6 +26,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
   - Diet: `DIET_COLORS` (green/blue/orange, the same as the charts).
   - Species: 8 validated slots plus grey Other. Don't add a 9th hue.
   - Terrain colours were brightened for Joe's laptop. Keep night and bust shading light, and draw night shading under food and simlets.
+- **Save files:** `save.js` lists every piece of state explicitly. **Any new simlet, world or sim state must be added to `Save.serialize`/`restore`**, or it silently resets on load. Bump `SAVE_VERSION` if the format changes incompatibly.
 - **Energy conservation:** nothing may create energy except plant spawning and farming yield. Check corpse value vs body cost after any breeding/death change.
 
 ## Testing

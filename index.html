@@ -56,6 +56,11 @@
       </div>
       <button id="btnDrop" class="btn wide" data-tip="Then click on the map: a new tribe lands there, with random genes but the brain of a living simlet with a similar diet. Esc cancels.">Air-drop tribe…</button>
       <button id="btnReseed" class="btn wide">Restart simulation</button>
+      <div class="row" style="margin-top:6px">
+        <button id="worldSave" class="btn sm" style="flex:1" data-tip="Download the whole world (map, soil, food, every simlet with its genes and brain, species, history and settings) as a file.">Save world…</button>
+        <button id="worldLoad" class="btn sm" style="flex:1" data-tip="Load a saved world file and carry on exactly where it left off (paused).">Load world…</button>
+        <input id="worldFile" type="file" accept=".json" class="hidden">
+      </div>
     </section>
 
     <section class="block" id="params"></section>
@@ -131,6 +136,7 @@
 <script src="js/world.js"></script>
 <script src="js/simlet.js"></script>
 <script src="js/sim.js"></script>
+<script src="js/save.js"></script>
 <script src="js/render.js"></script>
 <script src="js/charts.js"></script>
 <script src="js/ui.js"></script>
