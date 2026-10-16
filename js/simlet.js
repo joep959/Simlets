@@ -245,11 +245,11 @@ function think(s, sim) {
     const kn = Math.hypot(kinX, kinY);
     if (kn > 0 && best !== 'flee' && best !== 'hunt') { vx += kinX / kn * g[G.kinPull] * 0.8; vy += kinY / kn * g[G.kinPull] * 0.8; }
     vx += sepX * 2; vy += sepY * 2;
-    if (here !== TERRAIN.WATER) {                 // probe ahead for water, push away by aversion gene
+    if (!World.wet(s.x, s.y)) {                    // probe ahead for open water (ice is fine), push away by aversion gene
       const w = g[G.waterAversion] * 0.9, base = Math.atan2(vy, vx);
       for (const off of [-0.5, 0, 0.5]) {
         const a = base + off;
-        if (World.at(s.x + Math.cos(a) * 2.5, s.y + Math.sin(a) * 2.5) === TERRAIN.WATER) { vx -= Math.cos(a) * w; vy -= Math.sin(a) * w; }
+        if (World.wet(s.x + Math.cos(a) * 2.5, s.y + Math.sin(a) * 2.5)) { vx -= Math.cos(a) * w; vy -= Math.sin(a) * w; }
       }
     }
     const m = 3;                                   // soft walls
@@ -272,7 +272,7 @@ function act(s, sim) {
   }
   s.heading += clamp(wrapAngle(s.desired - s.heading), -0.3, 0.3);
   const here = World.at(s.x, s.y);
-  const inWater = here === TERRAIN.WATER;
+  const inWater = World.wet(s.x, s.y);            // open water; frozen water walks like land
   const v = s.moveSpeed * (inWater ? 0.5 : 1);
   if (v > 0) {
     const r = s.radius;
@@ -287,7 +287,9 @@ function act(s, sim) {
   // energy: movement ∝ mass × speed², water multiplies it; idle ∝ mass^0.75; resting halves idle
   const ref = v / 0.1;
   s.energy -= P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1);
-  s.energy -= P.idleCost * s.drainMult * (s.action === 'rest' || s.action === 'farm' ? 0.4 : 1);
+  // winter cold: extra idle drain in bust, mostly escaped under forest cover
+  const cold = World.season(sim.tick) === 1 ? P.winterCold * (here === TERRAIN.FOREST ? 1 - P.forestShelter : 1) : 0;
+  s.energy -= P.idleCost * s.drainMult * (1 + cold) * (s.action === 'rest' || s.action === 'farm' ? 0.4 : 1);
 
   // camouflage: breaks with movement, forest boosts it, big bodies show, alarm callers are fully visible
   let c = s.g[G.camo] * 0.85 * (1 - 0.4 * s.g[G.size]);

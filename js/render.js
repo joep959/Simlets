@@ -62,6 +62,19 @@ const Render = {
     ctx.drawImage(this.terrainCanvas, ox, oy, WORLD_W * z, WORLD_H * z);
     ctx.filter = 'none';
 
+    // ice: frozen water drawn pale blue-white with a faint crack line
+    for (const ti of World.iceTiles) {
+      const tx = ti % WORLD_W, ty = (ti / WORLD_W) | 0;
+      const [px, py] = this.toScreen(tx, ty);
+      if (px < -z || py < -z || px > this.w || py > this.h) continue;
+      ctx.fillStyle = 'rgba(222,238,248,0.88)';
+      ctx.fillRect(px, py, z + 0.5, z + 0.5);
+      if (z >= 6 && (ti * 2654435761 >>> 28) === 0) {
+        ctx.strokeStyle = 'rgba(140,170,195,0.7)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px + z * 0.2, py + z * 0.3); ctx.lineTo(px + z * 0.8, py + z * 0.7); ctx.stroke();
+      }
+    }
+
     // fallow: exhausted soil (below SOIL_MIN) drawn pale and dusty until it recovers
     for (const ti of World.depleted) {
       const tx = ti % WORLD_W, ty = (ti / WORLD_W) | 0;

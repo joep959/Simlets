@@ -37,7 +37,8 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
   - Grassland: food spawns rarely, but simlets can farm it.
   - Forest: boosts camouflage, cuts vision.
   - Water: crossable, but movement costs about 6× and speed is halved.
-- **Seasons:** boom and bust alternate. In bust, food grows at 25% of the boom rate.
+- **Seasons:** boom and bust alternate. In bust, fertile and grassland food grows at 25% of the boom rate, it's **cold** (higher energy drain, except under forest cover), and **ice** grows out from the shores, so narrow rivers become crossable bridges (Winter sliders).
+- **Forest:** low but steady food all year, plus shelter from the cold. It's the winter refuge.
 - **Day/night:** night cuts vision range by 40% and makes resting more attractive.
 - **Food:** wild plants rot. Farmed crops take 300 ticks to grow, keep 4× longer than wild plants (Crop storage slider) and anyone can eat them. Corpses are meat and decay over time.
 - **Soil:** farming exhausts the ground. Exhausted (pale, "fallow") tiles grow nothing until they recover (Soil recovery slider), and rotting corpses and food fertilise the soil. Farmers on spent land walk to fresh soil.

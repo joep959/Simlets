@@ -164,6 +164,24 @@ NEAT-style clustering:
   - Carnivores persisted for the whole run on 1 of 4 hybrid maps (80–184 carnivores); none did under rules. A browser run on the same map had none, so this is partly chance.
   - No extinctions in either mode.
 
+## 9e. Winter: ice, cold and forest refuge
+
+- **Ice:** `World.shoreDist` gives each water tile its distance to land, from a breadth-first search over 8 neighbours, recomputed when the map changes.
+  - Every 100 ticks during bust: reach = iceReach · sin(π · bust progress), so it grows and then thaws. A water tile freezes if shoreDist + fixed smooth noise (±1.5) ≤ reach.
+  - Then a 3×3 morphological **closing** (dilate, then erode, with land counted as solid) fills pinholes and joins floes.
+  - Ice walks like land (no water speed or cost penalty), and water avoidance ignores it. Narrow rivers bridge; wide lakes freeze only at the rims.
+- **Forest food:** `forestSpawn` (default 0.15‰ per tile per tick) is **not** reduced in bust.
+- **Winter cold:** in bust, idle drain × (1 + winterCold), with winterCold default 0.5. In forest, the extra is × (1 − forestShelter), default 0.7.
+- **Test (3 shared maps, 18k ticks, hybrid):**
+
+  | | Winter off (no ice, cold or forest food) | Cold 0.25 | Cold 0.5 |
+  |---|---|---|---|
+  | Share of population in forest (boom / bust) | 4–8% / 4–9% | 13–24% / 20–30% | 14–20% / 22–35% |
+  | Forest-dwelling species (≥10 members, >50% in forest) | 0 of 3 maps | 1 of 3 | 1 of 3 (map 3 had 4 such species) |
+  | Lowest bust population | 90–159 | 125–137 | 200–341 |
+
+  - Forest food adds energy, which more than offsets the cold. Ice formed 600–2,800 tiles at its peak, with a handful of simlets on ice at any moment. No extinctions. Default cold set to 0.5.
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.

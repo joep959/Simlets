@@ -19,6 +19,7 @@ const Sim = {
     Species.reset();
     World.tilled.clear();
     World.resetSoil();
+    World.ice.fill(0); World.iceTiles = [];
     this.grid = Array.from({ length: this.gw * this.gh }, () => []);
     Food.reset();
   },
@@ -78,7 +79,9 @@ const Sim = {
     const mult = World.season(this.tick) === 0 ? 1 : P.bustFactor;
     this.spawnOn(World.fertileTiles, P.fertileSpawn / 1000 * mult);
     this.spawnOn(World.grassTiles, P.grassSpawn / 1000 * mult);
+    this.spawnOn(World.forestTiles, P.forestSpawn / 1000);          // forest: low but steady, unaffected by bust
     if (this.tick % 25 === 0) { this.rotFood(); World.recoverSoil(25); }
+    if (this.tick % 100 === 0) World.updateIce(this.tick);
     if (P.immigration > 0 && this.tick - this.lastImmigration >= P.immigration) {   // trickle of newcomers
       this.lastImmigration = this.tick;
       const [cx, cy] = this.randomLand();

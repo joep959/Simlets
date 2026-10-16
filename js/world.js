@@ -5,6 +5,11 @@ const World = {
   terrain: new Uint8Array(WORLD_W * WORLD_H),
   fertileTiles: [],
   grassTiles: [],
+  forestTiles: [],
+  shoreDist: new Float32Array(WORLD_W * WORLD_H),   // water tiles: distance to nearest land (tiles)
+  ice: new Uint8Array(WORLD_W * WORLD_H),           // 1 = frozen water
+  iceTiles: [],                                      // frozen tile indices (for drawing)
+  iceNoise: null,
   dirty: true,      // terrain changed -> renderer rebuilds its cached image
   soil: new Float32Array(WORLD_W * WORLD_H).fill(1),   // nutrients 0..1 per tile
   depleted: new Set(),  // tiles currently below SOIL_MIN (for drawing fallow land)
@@ -17,12 +22,77 @@ const World = {
   },
 
   rebuildLists() {
-    this.fertileTiles = []; this.grassTiles = [];
+    this.fertileTiles = []; this.grassTiles = []; this.forestTiles = [];
     for (let i = 0; i < this.terrain.length; i++) {
       if (this.terrain[i] === TERRAIN.FERTILE) this.fertileTiles.push(i);
       else if (this.terrain[i] === TERRAIN.GRASS) this.grassTiles.push(i);
+      else if (this.terrain[i] === TERRAIN.FOREST) this.forestTiles.push(i);
     }
+    this.computeShoreDistance();
+    this.ice.fill(0); this.iceTiles = [];
     this.dirty = true;
+  },
+
+  // Breadth-first search outward from every land tile: each water tile gets its distance (8-neighbour steps) to land
+  computeShoreDistance() {
+    const W = WORLD_W, H = WORLD_H, d = this.shoreDist, q = new Int32Array(W * H);
+    let head = 0, tail = 0;
+    for (let i = 0; i < W * H; i++) { if (this.terrain[i] === TERRAIN.WATER) d[i] = 1e9; else { d[i] = 0; q[tail++] = i; } }
+    while (head < tail) {
+      const i = q[head++], x = i % W, y = (i / W) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const j = ny * W + nx;
+        if (d[j] > d[i] + 1) { d[j] = d[i] + 1; q[tail++] = j; }
+      }
+    }
+    if (!this.iceNoise) {                        // fixed smooth noise so ice edges look organic, same every winter
+      const n = makeNoise(); this.iceNoise = new Float32Array(W * H);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) this.iceNoise[y * W + x] = (fbm(n, x / 6, y / 6) - 0.5) * 3;
+    }
+  },
+
+  // Ice: during bust a reach grows from the shore (0 -> iceReach -> 0). A water tile freezes when its shore distance
+  // (plus fixed noise) is within reach. Then a 3x3 morphological closing (dilate, then erode) fills pinholes and
+  // joins nearby floes into solid sheets.
+  updateIce(tick) {
+    const W = WORLD_W, H = WORLD_H, raw = new Uint8Array(W * H);
+    const reach = this.season(tick) === 1 ? P.iceReach * Math.sin(Math.PI * this.seasonProgress(tick)) : 0;
+    let any = false;
+    if (reach > 0) for (let i = 0; i < W * H; i++)
+      if (this.terrain[i] === TERRAIN.WATER && this.shoreDist[i] + this.iceNoise[i] <= reach) { raw[i] = 1; any = true; }
+    if (!any) { if (this.iceTiles.length) { this.ice.fill(0); this.iceTiles = []; } return; }
+    const isWater = i => this.terrain[i] === TERRAIN.WATER;
+    const dil = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x; if (!isWater(i)) continue;
+      let f = 0;
+      for (let dy = -1; dy <= 1 && !f; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < W && ny < H && raw[ny * W + nx]) { f = 1; break; }
+      }
+      dil[i] = f;
+    }
+    this.ice.fill(0); this.iceTiles = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x; if (!dil[i]) continue;
+      let keep = 1;                              // erosion: land and map edges count as solid, so shores don't erode
+      for (let dy = -1; dy <= 1 && keep; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const j = ny * W + nx;
+        if (isWater(j) && !dil[j]) { keep = 0; break; }
+      }
+      if (keep) { this.ice[i] = 1; this.iceTiles.push(i); }
+    }
+  },
+  // open (unfrozen) water at a position: what actually slows and costs a simlet
+  wet(x, y) {
+    const tx = x | 0, ty = y | 0;
+    if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return true;
+    const i = ty * WORLD_W + tx;
+    return this.terrain[i] === TERRAIN.WATER && !this.ice[i];
   },
 
   resetSoil() { this.soil.fill(1); this.depleted.clear(); },
