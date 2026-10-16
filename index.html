@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simlets</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- Left: controls -->
+  <aside id="left" class="panel">
+    <h1>Simlets</h1>
+
+    <section class="block">
+      <div class="row">
+        <button id="btnPlay" class="btn primary" title="Space">❚❚ Pause</button>
+        <button id="btnStep" class="btn" title="Advance one tick">Step</button>
+      </div>
+      <label class="lbl">Speed <span id="speedLbl" class="val">×1</span></label>
+      <input id="speed" type="range" min="0" max="10" step="1" value="2">
+    </section>
+
+    <section class="block">
+      <div class="clock">
+        <div><span id="dayIcon">☀</span> Day <span id="dayNum">0</span></div>
+        <div class="muted">tick <span id="tickNum">0</span></div>
+      </div>
+      <div class="season"><span id="seasonName">BOOM</span>
+        <div class="bar"><div id="seasonBar"></div></div>
+      </div>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="block">
+      <div class="seg">
+        <button id="modeRun" class="segbtn on">Run</button>
+        <button id="modeEdit" class="segbtn">Edit map</button>
+      </div>
+      <div id="editTools" class="hidden">
+        <div class="brushes" id="brushes"></div>
+        <label class="lbl">Brush size <span id="brushLbl" class="val">3</span></label>
+        <input id="brushSize" type="range" min="1" max="15" step="1" value="3">
+        <div class="row wrap">
+          <button id="mapBlank" class="btn sm">Clear</button>
+          <button id="mapGen" class="btn sm">Random</button>
+          <button id="mapSave" class="btn sm">Save…</button>
+          <button id="mapLoad" class="btn sm">Load…</button>
+          <input id="mapFile" type="file" accept=".json" class="hidden">
+        </div>
+        <p class="hint">Left-drag paints, right-drag pans. Clear, Random and Load also wipe the population: press Run to drop in fresh tribes.</p>
+      </div>
+      <button id="btnDrop" class="btn wide" data-tip="Then click on the map: a brand-new random tribe lands there. Esc cancels.">Air-drop tribe…</button>
+      <button id="btnReseed" class="btn wide">Restart simulation</button>
+    </section>
+
+    <section class="block" id="params"></section>
+  </aside>
+
+  <!-- Centre: map + charts -->
+  <main id="centre">
+    <div id="mapWrap">
+      <canvas id="map"></canvas>
+      <div id="extinct" class="hidden">Extinct. <button id="btnReseed2" class="btn primary">Restart</button></div>
+      <div id="legend">
+        <span><i class="sw" style="background:#6aa84f"></i>Fertile</span>
+        <span><i class="sw" style="background:#d6cf98"></i>Grassland</span>
+        <span><i class="sw" style="background:#3d6b45"></i>Forest</span>
+        <span><i class="sw" style="background:#4a86c0"></i>Water</span>
+        <span><i class="dot" style="background:#9be36b"></i>Plant</span>
+        <span><i class="sw" style="background:#7a522c"></i>Farmland</span>
+        <span><i class="sw" style="background:#8a7c6c"></i>Fallow</span>
+        <span><i class="dot" style="background:#b5d65a;border:1px solid #3a2a00"></i>Growing crop</span>
+        <span><i class="dot" style="background:#f2a51a;border:1px solid #462300"></i>Crop</span>
+        <span><i class="dot" style="background:#9a9a9a"></i>Corpse</span>
+        <span class="lsep"></span>
+        <span><b style="color:#199e70">●</b>Herbivore</span>
+        <span><b style="color:#3987e5">◆</b>Omnivore</span>
+        <span><b style="color:#d95926">▲</b>Carnivore</span>
+        <button id="colorBy" class="btn sm">Colour: species</button>
+      </div>
+    </div>
+    <div id="charts">
+      <div class="chart">
+        <div class="ctitle">Population
+          <span class="clegend">
+            <span><i class="ln" style="background:var(--ink-2)"></i>Total</span>
+            <span><i class="ln" style="background:var(--herb)"></i>Herbivore</span>
+            <span><i class="ln" style="background:var(--omni)"></i>Omnivore</span>
+            <span><i class="ln" style="background:var(--carn)"></i>Carnivore</span>
+          </span>
+        </div>
+        <canvas id="chartPop"></canvas>
+      </div>
+      <div class="chart">
+        <div class="ctitle">Species over time <span id="spLegend" class="clegend"></span></div>
+        <canvas id="chartSpecies"></canvas>
+      </div>
+      <div class="chart">
+        <div class="ctitle">Mean gene over time <select id="geneSel"></select>
+          <span class="clegend"><span><i class="ln" style="background:var(--accent)"></i>mean</span><span><i class="band"></i>±1σ</span></span>
+        </div>
+        <canvas id="chartGene"></canvas>
+      </div>
+      <div class="chart">
+        <div class="ctitle">Diet distribution <span class="muted">plants ← → meat</span></div>
+        <canvas id="chartDiet"></canvas>
+      </div>
+      <div id="tip" class="hidden"></div>
+    </div>
+    <div id="itip" class="hidden"></div>
+  </main>
+
+  <!-- Right: inspector -->
+  <aside id="right" class="panel">
+    <div id="inspector"><p class="hint">Click a simlet to inspect its genome.</p></div>
+  </aside>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/genome.js"></script>
+<script src="js/species.js"></script>
+<script src="js/world.js"></script>
+<script src="js/simlet.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/render.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
