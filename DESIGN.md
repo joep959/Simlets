@@ -184,6 +184,16 @@ NEAT-style clustering:
 
   - Forest food adds energy, which more than offsets the cold. Ice formed 600–2,800 tiles at its peak, with a handful of simlets on ice at any moment. No extinctions. Default cold set to 0.5.
 
+## 9f. Scent tracking
+
+- **World:** `World.scent` holds one value per tile. Every simlet deposits 0.1·(1 − diet) per tick on its tile (capped at 5), so plant-eaters leave trails and pure meat-eaters leave none. It fades with half-life `scentFade` (default 600 ticks).
+- **Smell gene** (Senses): detection threshold = 0.02 + 0.5·(1 − smell)², so a good nose detects faint, old trails. Cost: +0.2·smell idle drain.
+- **Sniffing:** each think samples scent 3 tiles ahead at heading −0.6, 0 and +0.6 rad, and keeps the strongest. `smelt` = clamp(strongest / 1, 0, 1) if above the threshold, else 0.
+- **Track action:** score 1.5 · smelt · meatEff · drive · (0.5 + smell), only when no prey is visible. Movement: head toward the strongest probe at 0.8× top speed.
+- **Brain:** new input `scent` (= smelt) and new output `track`, so the network is 21 → 8 → 10.
+- **Map:** "Scent: on" in the legend shows trails in purple.
+- **First test:** tracking happens, and plant-eater sightings rose on 1 of 3 maps (0.3% → 8.8% of carnivore decisions), but carnivores still died out in all 6 runs. One natural run went extinct; 3 reruns of that map were healthy, so that was chance.
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.
@@ -218,7 +228,6 @@ NEAT-style clustering:
 - Farm-site choice / crops can't grow on tiles with wild plants (to spread fields onto grassland). Parked by Joe.
 - Field defence (aggression towards strangers eating your crops).
 - Prey choice by expected net gain (catchable / beatable / filling). Parked by Joe.
-- Prey tracking for predators (remember prey sightings, or scent at longer range than sight).
 - Highlight a selected simlet's family (parents, children, siblings) on the map.
 - A cost-of-sex slider.
 - A separate immigrant group size.

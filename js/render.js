@@ -7,7 +7,8 @@ const Render = {
   canvas: null, ctx: null, terrainCanvas: null,
   cam: { x: WORLD_W / 2, y: WORLD_H / 2, zoom: 5 },   // centre of view (tiles) and pixels per tile
   dpr: 1, w: 0, h: 0,
-  colorBy: 'species',   // 'diet' = herbivore/omnivore/carnivore, 'lineage' = colour from genome, 'species' = cluster colour
+  colorBy: 'species',
+  showScent: false, scentCanvas: null, scentFrame: 0,   // 'diet' = herbivore/omnivore/carnivore, 'lineage' = colour from genome, 'species' = cluster colour
 
   init(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d');
@@ -61,6 +62,22 @@ const Render = {
     ctx.filter = bust ? 'saturate(60%)' : 'none';
     ctx.drawImage(this.terrainCanvas, ox, oy, WORLD_W * z, WORLD_H * z);
     ctx.filter = 'none';
+
+    // scent overlay: one pixel per tile, rebuilt every 10 frames, drawn scaled over the map
+    if (this.showScent) {
+      if (!this.scentCanvas) { this.scentCanvas = document.createElement('canvas'); this.scentCanvas.width = WORLD_W; this.scentCanvas.height = WORLD_H; }
+      if (this.scentFrame++ % 10 === 0) {
+        const sc = this.scentCanvas.getContext('2d'), img = sc.createImageData(WORLD_W, WORLD_H), d = img.data;
+        for (let i = 0; i < World.scent.length; i++) {
+          const v = World.scent[i]; if (v <= 0.02) continue;
+          d[i * 4] = 150; d[i * 4 + 1] = 60; d[i * 4 + 2] = 220; d[i * 4 + 3] = Math.min(220, 40 + v * 120);
+        }
+        sc.putImageData(img, 0, 0);
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(this.scentCanvas, ox, oy, WORLD_W * z, WORLD_H * z);
+      ctx.imageSmoothingEnabled = false;
+    }
 
     // ice: frozen water drawn pale blue-white with a faint crack line
     for (const ti of World.iceTiles) {

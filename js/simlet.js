@@ -45,7 +45,8 @@ class Simlet {
     this.acuity = 1 - 0.7 * g[G.fov];                             // wide eyes are worse at beating camo
     this.maxAge = 5000 + g[G.lifespan] * 15000;
     // idle drain proportional to size; long life and big memory cost upkeep
-    this.drainMult = this.mass * (1 + 0.5 * g[G.lifespan]) * (1 + 0.3 * g[G.stamina]) + g[G.memory] * 0.3;
+    this.drainMult = this.mass * (1 + 0.5 * g[G.lifespan]) * (1 + 0.3 * g[G.stamina]) + g[G.memory] * 0.3 + g[G.smell] * 0.2;
+    this.scentThreshold = 0.02 + 0.5 * Math.pow(1 - g[G.smell], 2);   // faintest trail it can detect
     this.staminaMax = 40 + 260 * g[G.stamina];                     // ticks of sprinting on a full meter
     this.staminaRegen = 0.3 + 0.7 * g[G.stamina];                  // meter refill per tick when not sprinting
     this.matureAge = MATURE_AGE * (0.6 + 0.8 * g[G.size]);     // big bodies take longer to grow up
@@ -145,6 +146,13 @@ function think(s, sim) {
   const mem = food ? null : recall(s, tick);
 
   // --- score every action (utility AI) and pick the best ---
+  // smell: sample plant-eater scent 3 tiles ahead-left, ahead and ahead-right; follow the strongest
+  let scentDir = 0, scentBest = 0;
+  for (const off of [-0.6, 0, 0.6]) {
+    const a = s.heading + off, v = World.scentAt(s.x + Math.cos(a) * 3, s.y + Math.sin(a) * 3);
+    if (v > scentBest) { scentBest = v; scentDir = a; }
+  }
+  const smelt = scentBest > s.scentThreshold ? clamp(scentBest / 1.0, 0, 1) : 0;   // 0 = smells nothing
   const farmable = here === TERRAIN.FERTILE || here === TERRAIN.GRASS;
   // hard limits = physically possible; judgements (hungry? danger?) are soft penalties the brain can learn to overrule
   const canFarm = farmable && s.energy >= P.farmCost * 1.5;
@@ -159,6 +167,7 @@ function think(s, sim) {
     farm:   canFarm ? g[G.farming] * 0.9 * (food ? 0.5 : 1) * (ef > 0.5 ? 1 : 0.1) * danger : 0,
     rest:   g[G.rest] * (night ? 1.2 : 0.5) * (food || threat ? 0.3 : 1),
     wander: 0.1 + g[G.wander] * 0.4 + (seekMate && !mate ? 0.3 : 0),
+    track:  smelt > 0 && !prey ? 1.5 * smelt * s.meatEff * drive * (0.5 + g[G.smell]) : 0,   // hungry meat-eaters follow trails
   };
   if (s.alertTimer > 0 && s.alert) sc.flee = Math.max(sc.flee, g[G.flee] * 0.8);
   // hybrid brain: the network adds a learned correction to each available action's score
@@ -171,10 +180,10 @@ function think(s, sim) {
     x[11] = World.darkness(tick); x[12] = World.season(tick); x[13] = Math.min(1, kinCount / 5);
     x[14] = ready ? 1 : 0; x[15] = s.age / s.maxAge;
     x[16] = here === TERRAIN.FOREST ? 1 : 0; x[17] = World.wet(s.x, s.y) ? 1 : 0;   // where it's standing
-    x[18] = World.freshSoil((s.y | 0) * WORLD_W + (s.x | 0)) ? 1 : 0; x[19] = 1;
+    x[18] = World.freshSoil((s.y | 0) * WORLD_W + (s.x | 0)) ? 1 : 0; x[19] = smelt; x[20] = 1;
     runBrain(s.brain, x, out);
     const avail = { flee: !!(threat || (s.alertTimer > 0 && s.alert)), hunt: !!prey, eat: !!food, recall: !!mem,
-                    breed: !!(seekMate && mate), clone: cloneNow, farm: canFarm, rest: true, wander: true };
+                    breed: !!(seekMate && mate), clone: cloneNow, farm: canFarm, rest: true, wander: true, track: smelt > 0 };
     s.baseScores = { ...sc };
     let corr = 0;
     BRAIN_OUT.forEach((k, o) => {
@@ -230,6 +239,7 @@ function think(s, sim) {
     case 'farm':   if (!doFarm(s, sim)) best = 'rest'; break;
     case 'sow':    toward(sowSpot.x, sowSpot.y); speed = ms * 0.6; s.target = sowSpot; break;
     case 'rest':   break;
+    case 'track':  vx = Math.cos(scentDir); vy = Math.sin(scentDir); speed = ms * 0.8; break;
     case 'wander': {
       const a = s.heading + gauss() * 0.25;          // small wobble on current heading = smooth exploring
       vx = Math.cos(a); vy = Math.sin(a);
@@ -286,6 +296,7 @@ function act(s, sim) {
     s.x = nx; s.y = ny;
   }
   s.curSpeed = v;
+  World.depositScent(s.x, s.y, 0.1 * (1 - s.g[G.diet]));   // plant-eaters smell like prey; pure meat-eaters leave none
 
   // energy: movement ∝ mass × speed², water multiplies it; idle ∝ mass^0.75; resting halves idle
   const ref = v / 0.1;

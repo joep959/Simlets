@@ -42,7 +42,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## State and open threads (update this when they change)
 
-- Built: everything in README.md (24 genes incl. sexuality and stamina, hybrid neural brain (toggle), optimal-foraging food choice, diet-aware targeting, winter (ice bridges via shore-distance + closing, cold drain, forest shelter and steady forest food), farming with home fields + crop storage + soil nutrients/fallow + farmland visuals (villages), species colouring by default, species, air-drop, immigration, hover help, diet shapes, laptop-friendly brightness).
+- Built: everything in README.md (25 genes incl. sexuality, stamina and smell; scent trails + Track action, hybrid neural brain (toggle), optimal-foraging food choice, diet-aware targeting, winter (ice bridges via shore-distance + closing, cold drain, forest shelter and steady forest food), farming with home fields + crop storage + soil nutrients/fallow + farmland visuals (villages), species colouring by default, species, air-drop, immigration, hover help, diet shapes, laptop-friendly brightness).
 - Offered but not approved yet:
   - family highlighting
   - cost-of-sex slider

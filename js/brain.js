@@ -6,8 +6,8 @@
 
 const BRAIN_IN = ['energy', 'hunger', 'stamina', 'exhausted', 'threat', 'threatNear', 'prey', 'preyNear',
                   'preySize', 'food', 'foodNear', 'night', 'bust', 'kin', 'ready', 'age',
-                  'inForest', 'onWater', 'freshSoil', 'bias'];
-const BRAIN_OUT = ['flee', 'hunt', 'eat', 'recall', 'breed', 'clone', 'farm', 'rest', 'wander'];
+                  'inForest', 'onWater', 'freshSoil', 'scent', 'bias'];
+const BRAIN_OUT = ['flee', 'hunt', 'eat', 'recall', 'breed', 'clone', 'farm', 'rest', 'wander', 'track'];
 const NI = BRAIN_IN.length, NH = 8, NO = BRAIN_OUT.length;
 const W1_LEN = NI * NH;                       // input -> hidden (the 'bias' input acts as hidden bias)
 const BRAIN_LEN = W1_LEN + (NH + 1) * NO;     // hidden -> output, plus one output bias row

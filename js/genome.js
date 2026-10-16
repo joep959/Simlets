@@ -14,6 +14,8 @@ const GENES = [
     tip: 'Maximum age, 5,000 to 20,000 ticks. A longer life raises idle energy drain by up to 50%.' },
   { key: 'fov', group: 'Senses', label: 'FOV width',
     tip: 'Width of the vision cone, 45° to 342°. Every simlet sees the same total area; this gene only reshapes it. Narrow = long and sharp straight ahead (about 22 tiles, sees through camouflage). Wide = all-round but short (about 8 tiles) and blurry, so camouflaged simlets slip past.' },
+  { key: 'smell', group: 'Senses', label: 'Smell',
+    tip: 'Sensitivity of the nose. Plant-eaters leave fading scent trails; a better nose detects fainter, older trails and can follow them (the TRACK action, mostly used by hungry meat-eaters). Cost: a little extra idle drain.' },
   { key: 'memory', group: 'Senses', label: 'Memory',
     tip: 'How many food spots it remembers (1 to 5) and for how long. Lets it return to food it saw earlier. Costs a little idle energy (brains are expensive).' },
   { key: 'wander', group: 'Movement', label: 'Wander',

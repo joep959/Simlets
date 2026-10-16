@@ -10,6 +10,7 @@ const World = {
   ice: new Uint8Array(WORLD_W * WORLD_H),           // 1 = frozen water
   iceTiles: [],                                      // frozen tile indices (for drawing)
   iceNoise: null,
+  scent: new Float32Array(WORLD_W * WORLD_H),       // plant-eater scent per tile (fades over time)
   dirty: true,      // terrain changed -> renderer rebuilds its cached image
   soil: new Float32Array(WORLD_W * WORLD_H).fill(1),   // nutrients 0..1 per tile
   depleted: new Set(),  // tiles currently below SOIL_MIN (for drawing fallow land)
@@ -87,6 +88,21 @@ const World = {
       if (keep) { this.ice[i] = 1; this.iceTiles.push(i); }
     }
   },
+  // scent: deposited by every simlet in proportion to how plant-eating it is, capped, fading with a half-life
+  depositScent(x, y, amount) {
+    const tx = x | 0, ty = y | 0;
+    if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return;
+    const i = ty * WORLD_W + tx; this.scent[i] = Math.min(5, this.scent[i] + amount);
+  },
+  fadeScent(ticks) {
+    const k = Math.pow(0.5, ticks / P.scentFade), s = this.scent;
+    for (let i = 0; i < s.length; i++) if (s[i] > 0) { s[i] *= k; if (s[i] < 0.002) s[i] = 0; }
+  },
+  scentAt(x, y) {
+    const tx = x | 0, ty = y | 0;
+    return tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H ? 0 : this.scent[ty * WORLD_W + tx];
+  },
+
   // open (unfrozen) water at a position: what actually slows and costs a simlet
   wet(x, y) {
     const tx = x | 0, ty = y | 0;

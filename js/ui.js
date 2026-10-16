@@ -50,6 +50,11 @@ const UI = {
     $('btnDrop').onclick = () => this.armDrop(!this.dropArmed);
     $('btnReseed').onclick = $('btnReseed2').onclick = () => this.reseed();
 
+    $('scentBtn').onclick = () => {
+      Render.showScent = !Render.showScent;
+      $('scentBtn').textContent = 'Scent: ' + (Render.showScent ? 'on' : 'off');
+    };
+    $('scentBtn').dataset.tip = 'Show the plant-eater scent trails that predators track (purple). Stronger colour = fresher, stronger scent.';
     $('colorBy').onclick = () => {
       Render.colorBy = { diet: 'species', species: 'lineage', lineage: 'diet' }[Render.colorBy];
       $('colorBy').textContent = 'Colour: ' + Render.colorBy;
@@ -347,6 +352,7 @@ const BRAIN_INPUT_TIPS = {
   food: 'Value of the best visible food (net energy)', foodNear: 'How close that food is (1 = right here)',
   night: 'Darkness (0 noon, 1 midnight)', bust: 'Bust season (1 = bust, 0 = boom)', kin: 'Relatives nearby (1 = five or more)',
   ready: 'Ready to breed (1 = yes)', age: 'Age as a fraction of its maximum lifespan',
+  scent: 'Strength of plant-eater scent it can smell ahead (0 = nothing, or too faint for its nose)',
   inForest: 'Standing in forest (1 = yes): cover, shelter from winter cold, shorter sight',
   onWater: 'Standing in open water (1 = yes; ice does not count)',
   freshSoil: 'Standing on farmable land with fresh (non-exhausted) soil (1 = yes)',
@@ -354,7 +360,7 @@ const BRAIN_INPUT_TIPS = {
 };
 const BRAIN_ACTION_NAMES = {
   flee: 'Flee', hunt: 'Hunt', eat: 'Eat', recall: 'Go to remembered food', breed: 'Seek a mate',
-  clone: 'Clone (asexual breeding)', farm: 'Farm', rest: 'Rest', wander: 'Wander',
+  clone: 'Clone (asexual breeding)', farm: 'Farm', rest: 'Rest', wander: 'Wander', track: 'Track a scent trail',
 };
 
 // What the simlet is currently doing (the action that scored highest at its last decision)
@@ -366,6 +372,7 @@ const ACTION_TIPS = {
   flee: 'Running from a threat it can see, or one a relative warned it about.',
   breed: 'Approaching a compatible mate.',
   sow: 'Walking to fresh soil to plant: the ground here is exhausted.',
+  track: 'Following a plant-eater scent trail towards where the herd went.',
   clone: 'Reproducing asexually: budding off mutated copies of itself.',
   farm: 'Planting food: spent energy, now waiting while it grows.',
   rest: 'Resting to save energy. Idle drain is cut and camouflage stays intact.',

@@ -1,6 +1,6 @@
 # Simlets
 
-An evolving ecosystem you can watch in the browser. Simlets are small creatures with a 24-gene chromosome. They eat, hunt, flee, farm, share and breed on a map you paint yourself. Nobody scores them: the ones that survive long enough to breed pass their genes on, and the world decides what "fit" means.
+An evolving ecosystem you can watch in the browser. Simlets are small creatures with a 25-gene chromosome. They eat, hunt, flee, farm, share and breed on a map you paint yourself. Nobody scores them: the ones that survive long enough to breed pass their genes on, and the world decides what "fit" means.
 
 It's a play and learning project about genetic algorithms, agent-based simulation and evolution.
 
@@ -21,7 +21,7 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 |---|---|
 | **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Restore default settings**, and all world sliders (hover a slider for what it does) |
 | **Map** | Scroll to zoom, drag to pan, click a simlet to select it. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
-| **Right panel** | Nothing selected: the **species list**. Simlet selected: its vitals, derived body stats and all 24 genes |
+| **Right panel** | Nothing selected: the **species list**. Simlet selected: its vitals, derived body stats and all 25 genes |
 | **Bottom charts** | Population by diet · Species over time · Mean of any gene ± spread · Diet histogram |
 
 **Reading a simlet on the map**
@@ -57,7 +57,7 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 | Group | Genes |
 |---|---|
 | Body | Size, Max speed, Camouflage, Diet (0 plants … 1 meat), Lifespan |
-| Senses | FOV width (wide = short-sighted, low acuity), Memory |
+| Senses | FOV width (wide = short-sighted, low acuity), Smell (follow plant-eater scent trails), Memory |
 | Movement | Wander, Sprint urge, Stamina (sprint meter), Water aversion, Rest |
 | Feeding | Hunger threshold, Scavenge |
 | Social | Flee, Aggression, Kin pull, Donation, Alarm, Farming |
@@ -87,7 +87,7 @@ Every gene has a cost or a trade-off. Hover a gene in the inspector for the spec
 | `index.html`, `css/style.css` | Page layout and styling |
 | `js/config.js` | World constants and every slider (with its hover text) |
 | `js/brain.js` | The hybrid neural brain (network, mutation, crossover, inspector heat-map data) |
-| `js/genome.js` | The 24 genes, mutation, crossover, similarity, colour |
+| `js/genome.js` | The 25 genes, mutation, crossover, similarity, colour |
 | `js/species.js` | Species clustering (NEAT-style) |
 | `js/world.js` | Terrain, map generation, save/load, food storage, seasons, day/night |
 | `js/simlet.js` | A simlet's body, and its sense → decide → act behaviour |
