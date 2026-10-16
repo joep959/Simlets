@@ -220,6 +220,11 @@ NEAT-style clustering:
 - **Carnivores are fragile:** they persist at low numbers in some runs and die out in others. Slower plant eating, optimal foraging and diet-aware targeting didn't fix it on their own (immigration helps sometimes).
   - **Measured bottleneck (Oct 2026 autopsy):** a carnivore has any plant-eater within vision on only 2–17% of its decisions, so it spends 40–50% of its time wandering and 17–45% resting, and hunts 0.5–6% of the time.
   - It's an **encounter-rate** problem: predators have no way to track prey beyond line of sight.
+  - **Later tests (Oct 2026):**
+    - Chase autopsy: hunting works when prey is seen (62–82% of the time; 24% of hunts kill).
+    - Normal seeding starts carnivores 20–35 tiles from prey, beyond sight.
+    - Seeding tribes close together (`seedSpread` 0.3) plus a full-energy start (`founderEnergy` 1) raised carnivore kills 2–20× but still didn't make them persist, and crowding hurt overall stability. Defaults were left at 1 / 0.7.
+    - In one baseline run, carnivores boomed to about 300 and crashed the prey population: classic predator overshoot. Once established, they can thrive; founding is the hard part.
 - Behaviour rules are fixed; only their weights evolve. Evolved brains (neuroevolution) would be v2.
 - There are no sexes, so there's no real cost of sex.
 

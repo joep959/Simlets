@@ -59,6 +59,8 @@ const PARAM_DEFS = [
   ['Immigration', 'immigration',     'New tribe every N ticks (0 = off)', 0,   20000, 500,  0],
   ['Population', 'tribes',           'Starting tribes',                 1,    20,   1,     8],
   ['Population', 'tribeSize',        'Simlets per tribe',               2,    60,   1,     20],
+  ['Population', 'seedSpread',       'Starting spread (share of map)',  0.1,  1,    0.05,  1],
+  ['Population', 'founderEnergy',    'Founder starting energy',         0.2,  1,    0.05,  0.7],
   ['Population', 'maxPop',           'Population cap',                  100,  3000, 50,    1500],
 ];
 
@@ -97,6 +99,8 @@ const PARAM_TIPS = {
   immigration: 'Trickle of newcomers: every N ticks a brand-new random tribe lands somewhere on dry land. 0 = off. Newcomers are genetically foreign, so they cannot interbreed with the locals at first.',
   tribes: 'Number of founder groups dropped in when you Run a fresh map or Restart. Each tribe gets its own random genome.',
   tribeSize: 'Simlets per founder group, all close relatives of their founder. Also used for air-drops and immigrants.',
+  seedSpread: 'How much of the map the starting tribes are scattered over. 1 = anywhere; 0.3 = all tribes start within a region about a third of the map across, so predators and prey share a landscape from day one.',
+  founderEnergy: 'Energy the starting tribes (and air-drops and immigrants) arrive with, as a fraction of their maximum.',
   maxPop: 'Hard population cap: at the cap, breeding is blocked. Keeps the browser responsive.',
 };
 

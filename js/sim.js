@@ -28,18 +28,22 @@ const Sim = {
   // Each tribe = one random founder genome + small variations, dropped together on land
   seed() {
     this.reset();
-    for (let t = 0; t < P.tribes; t++) { const [cx, cy] = this.randomLand(); this.dropTribe(cx, cy, 'founder'); }
+    // founders land within a region covering seedSpread of the map (1 = anywhere), so tribes share a landscape
+    const hw = (WORLD_W - 20) * P.seedSpread / 2, hh = (WORLD_H - 20) * P.seedSpread / 2;
+    const ox = 10 + hw + Math.random() * (WORLD_W - 20 - 2 * hw), oy = 10 + hh + Math.random() * (WORLD_H - 20 - 2 * hh);
+    for (let t = 0; t < P.tribes; t++) { const [cx, cy] = this.randomLand(ox, oy, hw, hh); this.dropTribe(cx, cy, 'founder'); }
     Species.update(this.simlets, 0);
     // a little starting food
     for (let i = 0; i < 400; i++) this.spawnOn(World.fertileTiles, 1 / Math.max(1, World.fertileTiles.length));
     this.sample();
   },
 
-  randomLand() {
+  // random dry land, anywhere by default or within ±hw/±hh of (ox, oy)
+  randomLand(ox = WORLD_W / 2, oy = WORLD_H / 2, hw = WORLD_W / 2 - 10, hh = WORLD_H / 2 - 10) {
     let cx, cy, tries = 0;
-    do { cx = 10 + Math.random() * (WORLD_W - 20); cy = 10 + Math.random() * (WORLD_H - 20); }
+    do { cx = ox + (Math.random() * 2 - 1) * hw; cy = oy + (Math.random() * 2 - 1) * hh; }
     while (World.at(cx, cy) === TERRAIN.WATER && ++tries < 200);
-    return [cx, cy];
+    return [clamp(cx, 5, WORLD_W - 5), clamp(cy, 5, WORLD_H - 5)];
   },
 
   // A tribe = one new random founder genome + small variations, dropped together around (cx, cy)
@@ -50,7 +54,7 @@ const Sim = {
       const g = mutateGenome(founder, 0.5, 0.05);
       const x = clamp(cx + gauss() * 4, 1, WORLD_W - 1), y = clamp(cy + gauss() * 4, 1, WORLD_H - 1);
       const s = new Simlet(g, x, y, 1e9, 0, []);
-      s.energy = s.maxEnergy * 0.7;
+      s.energy = s.maxEnergy * P.founderEnergy;
       s.age = (Math.random() * MATURE_AGE * 2) | 0;
       s.origin = origin; s.species = sp;
       s.brain = new Float32Array(founderBrain);              // tribe shares the founder brain (zero output = rules only)
