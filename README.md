@@ -19,7 +19,7 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 
 | Area | What's there |
 |---|---|
-| **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Air-drop tribe**, **Restart simulation**, **Restore default settings**, and all world sliders (hover a slider for what it does) |
+| **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Restore default settings**, and all world sliders (hover a slider for what it does) |
 | **Map** | Scroll to zoom, drag to pan, click a simlet to select it. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
 | **Right panel** | Nothing selected: the **species list**. Simlet selected: its vitals, derived body stats and all 24 genes |
 | **Bottom charts** | Population by diet · Species over time · Mean of any gene ± spread · Diet histogram |
@@ -42,6 +42,13 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 - **Food:** wild plants rot. Farmed crops take 300 ticks to grow, keep 4× longer than wild plants (Crop storage slider) and anyone can eat them. Corpses are meat and decay over time.
 - **Soil:** farming exhausts the ground. Exhausted (pale, "fallow") tiles grow nothing until they recover (Soil recovery slider), and rotting corpses and food fertilise the soil. Farmers on spent land walk to fresh soil.
 - **Settling:** a farmer remembers its field and drifts back to it, and its children inherit the field. Families clustering round their fields are the start of villages.
+
+## Brains
+
+- **Rules** (default): simlets score each action with hand-written formulas weighted by their genes, and the best score wins.
+- **Hybrid:** each simlet also carries a small neural network. It adds a learned correction to every score.
+  - It starts at zero, so nothing changes at first. Over generations, evolution tunes it and it can come to override the rules.
+  - Select a simlet to see the rules-vs-brain scores and a "wiring" heat-map of what its brain has learned.
 
 ## The genes (all 0 to 1)
 
@@ -77,6 +84,7 @@ Every gene has a cost or a trade-off. Hover a gene in the inspector for the spec
 |---|---|
 | `index.html`, `css/style.css` | Page layout and styling |
 | `js/config.js` | World constants and every slider (with its hover text) |
+| `js/brain.js` | The hybrid neural brain (network, mutation, crossover, inspector heat-map data) |
 | `js/genome.js` | The 24 genes, mutation, crossover, similarity, colour |
 | `js/species.js` | Species clustering (NEAT-style) |
 | `js/world.js` | Terrain, map generation, save/load, food storage, seasons, day/night |

@@ -26,7 +26,8 @@ class Simlet {
     this.alarmTimer = 0; this.alarmFlash = 0;
     this.alert = null; this.alertTimer = 0;
     this.memory = [];
-    this.field = null;     // home field {x, y, t}: set by farming, pulls the simlet back home
+    this.field = null;
+    this.brain = null;     // neural-network weights (second chromosome), see brain.js     // home field {x, y, t}: set by farming, pulls the simlet back home
     this.camoEff = 0;
     this.range = this.visionRange;
   }
@@ -81,7 +82,7 @@ function think(s, sim) {
 
   // --- sense other simlets ---
   let threat = null, threatScore = 0, prey = null, preyScore = 0, mate = null, mateD = 1e9;
-  let kinX = 0, kinY = 0, sepX = 0, sepY = 0, donateTo = null;
+  let kinX = 0, kinY = 0, sepX = 0, sepY = 0, donateTo = null, kinCount = 0, threatD = 0, preyD = 0;
   sim.querySimlets(s.x, s.y, range, o => {
     if (o === s || o.dead) return;
     const dx = o.x - s.x, dy = o.y - s.y, d2 = dx * dx + dy * dy;
@@ -97,14 +98,15 @@ function think(s, sim) {
     const closeness = 1 - 0.5 * d / range;
     const od = o.g[G.diet];                                         // diet is visible (body shape)
     const ts = g[G.flee] * dis * Math.min(sizeRatio, 3) * closeness * (0.3 + 0.7 * od);   // meat-eaters are the scary ones
-    if (ts > threatScore) { threatScore = ts; threat = o; }
+    if (ts > threatScore) { threatScore = ts; threat = o; threatD = d; }
     // hunting: driven by aggression, and by hunger if this simlet can digest meat
     const ps = dis * Math.min(1 / sizeRatio, 2) * closeness * (1 - 0.7 * od) *       // other meat-eaters make poor, risky prey
                (g[G.aggression] * (0.4 + hunger) * 0.6 + s.meatEff * drive * 0.9);
-    if (ps > preyScore) { preyScore = ps; prey = o; }
+    if (ps > preyScore) { preyScore = ps; prey = o; preyD = d; }
     if (seekMate && d < mateD && o.age >= o.matureAge && o.breedCd === 0 && o.energy > o.maxEnergy * 0.3 &&
         sm >= s.minMateSim && sm >= o.minMateSim) { mate = o; mateD = d; }
     if (sm > 0.6) {
+      kinCount++;
       kinX += dx / d * sm; kinY += dy / d * sm;
       if (!donateTo && d < touch + 1 && o.energy / o.maxEnergy < 0.3) donateTo = o;
     }
@@ -120,7 +122,7 @@ function think(s, sim) {
     const handling = f.e / (meat ? MEAT_BITE : P.plantBite), travel = d / walkV;
     return [(meat ? s.meatEff : s.plantEff) * f.e - travel * moveBurn - handling * idleBurn, travel + handling];
   };
-  let food = null, foodRate = 0, foodNet = 0;
+  let food = null, foodRate = 0, foodNet = 0, foodD = 0;
   const cur = s.target;
   if (s.action === 'eat' && cur && !cur.removed && Math.hypot(cur.x - s.x, cur.y - s.y) < s.radius + 0.5) {
     // already mid-meal: keep eating this item rather than re-scanning every food item in view
@@ -135,7 +137,7 @@ function think(s, sim) {
     if (net <= 0) return;                                         // costs more than it gives: ignore
     const pref = f.type === 2 ? 0.5 + g[G.scavenge] : 1;
     const rate = net * pref / time;                               // pick the best energy per tick
-    if (rate > foodRate) { foodRate = rate; food = f; foodNet = net * pref; }
+    if (rate > foodRate) { foodRate = rate; food = f; foodNet = net * pref; foodD = d; }
   });
   const foodWorth = clamp(foodNet / (P.plantEnergy * 0.5), 0, 1);   // ~1 = a decent meal, 0 = not worth it
   if (food) remember(s, food.x, food.y, tick);
@@ -155,6 +157,27 @@ function think(s, sim) {
     wander: 0.1 + g[G.wander] * 0.4 + (seekMate && !mate ? 0.3 : 0),
   };
   if (s.alertTimer > 0 && s.alert) sc.flee = Math.max(sc.flee, g[G.flee] * 0.8);
+  // hybrid brain: the network adds a learned correction to each available action's score
+  if (Brain.mode === 'hybrid' && s.brain) {
+    const x = s._bx || (s._bx = new Float32Array(NI)), out = s._bo || (s._bo = new Float32Array(NO));
+    x[0] = ef; x[1] = clamp(drive / 2, 0, 1); x[2] = s.stam / s.staminaMax; x[3] = s.exhausted ? 1 : 0;
+    x[4] = clamp(threatScore, 0, 1); x[5] = threat ? 1 - threatD / range : 0;
+    x[6] = clamp(preyScore, 0, 1); x[7] = prey ? 1 - preyD / range : 0; x[8] = prey ? clamp(prey.mass / s.mass / 3, 0, 1) : 0;
+    x[9] = foodWorth; x[10] = food ? 1 - foodD / range : 0;
+    x[11] = World.darkness(tick); x[12] = World.season(tick); x[13] = Math.min(1, kinCount / 5);
+    x[14] = ready ? 1 : 0; x[15] = s.age / s.maxAge; x[16] = 1;
+    runBrain(s.brain, x, out);
+    const avail = { flee: !!(threat || (s.alertTimer > 0 && s.alert)), hunt: !!prey, eat: !!food, recall: !!mem,
+                    breed: !!(seekMate && mate), clone: cloneNow && !threat, farm: sc.farm > 0, rest: true, wander: true };
+    s.baseScores = { ...sc };
+    let corr = 0;
+    BRAIN_OUT.forEach((k, o) => {
+      if (avail[k]) { sc[k] += out[o]; corr += Math.abs(out[o]); }
+      else sc[k] = -Infinity;                    // the brain can't pick an action that isn't possible
+    });
+    sim.brainCorr += corr / NO; sim.brainThinks++;
+  } else s.baseScores = null;
+
   let best = 'wander';
   for (const k in sc) if (sc[k] > sc[best]) best = k;
   // can't farm spent soil: walk to the nearest fresh tile instead (or just wander if none nearby)

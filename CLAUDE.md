@@ -4,13 +4,15 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## Architecture
 
-- Plain HTML/JS/CSS, **no build step and no server**: it must work by double-clicking `index.html` (file://). So **no ES modules**. Every `js/*.js` is a classic script sharing globals, loaded in the order in `index.html`: config → genome → species → world → simlet → sim → render → charts → ui → main.
+- Plain HTML/JS/CSS, **no build step and no server**: it must work by double-clicking `index.html` (file://). So **no ES modules**. Every `js/*.js` is a classic script sharing globals, loaded in the order in `index.html`: config → genome → brain → species → world → simlet → sim → render → charts → ui → main.
+- **Version control:** git repo. `main` = snapshot before the hybrid brain; feature work happens on branches (the brain is on `hybrid-brain`). Commit before risky changes so Joe can always roll back.
 - Key globals:
   - `P`: live slider values
   - `G`: gene name → index
   - `World`, `Food`: terrain grid and food buckets
   - `Sim`: tick loop and stats
   - `Species`
+  - `Brain` (`Brain.mode` = 'rules' | 'hybrid')
   - `Render`, `Charts`, `UI`
 - The simulation is decoupled from drawing: `main.js` runs N `Sim.step()` calls per animation frame.
 
@@ -40,7 +42,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## State and open threads (update this when they change)
 
-- Built: everything in README.md (24 genes incl. sexuality and stamina, optimal-foraging food choice, diet-aware targeting, farming with home fields + crop storage + soil nutrients/fallow + farmland visuals (villages), species colouring by default, species, air-drop, immigration, hover help, diet shapes, laptop-friendly brightness).
+- Built: everything in README.md (24 genes incl. sexuality and stamina, hybrid neural brain (toggle), optimal-foraging food choice, diet-aware targeting, farming with home fields + crop storage + soil nutrients/fallow + farmland visuals (villages), species colouring by default, species, air-drop, immigration, hover help, diet shapes, laptop-friendly brightness).
 - Offered but not approved yet:
   - family highlighting
   - cost-of-sex slider

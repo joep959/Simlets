@@ -8,13 +8,13 @@ const Sim = {
   newborns: [],
   gw: Math.ceil(WORLD_W / SIM_CELL), gh: Math.ceil(WORLD_H / SIM_CELL),
   grid: null,
-  births: 0, deaths: { starved: 0, old: 0, killed: 0 }, alarms: 0, farmEvents: 0, stillborn: 0, arrivals: 0, lastImmigration: 0, dropFx: [], birthsSex: 0, birthsAsex: 0,
+  births: 0, deaths: { starved: 0, old: 0, killed: 0 }, alarms: 0, farmEvents: 0, stillborn: 0, arrivals: 0, lastImmigration: 0, dropFx: [], birthsSex: 0, birthsAsex: 0, brainCorr: 0, brainThinks: 0, brainInfluence: 0,
   history: null,
 
   reset() {
     this.tick = 0; this.simlets = []; this.newborns = [];
     this.births = 0; this.deaths = { starved: 0, old: 0, killed: 0 }; this.alarms = 0; this.farmEvents = 0; this.stillborn = 0;
-    this.arrivals = 0; this.lastImmigration = 0; this.dropFx = []; this.birthsSex = 0; this.birthsAsex = 0;
+    this.arrivals = 0; this.lastImmigration = 0; this.dropFx = []; this.birthsSex = 0; this.birthsAsex = 0; this.brainCorr = 0; this.brainThinks = 0; this.brainInfluence = 0;
     this.history = { interval: 50, t: [], pop: [], herb: [], omni: [], carn: [], food: [], mean: [], sd: [], species: [] };
     Species.reset();
     World.tilled.clear();
@@ -42,7 +42,7 @@ const Sim = {
 
   // A tribe = one new random founder genome + small variations, dropped together around (cx, cy)
   dropTribe(cx, cy, origin) {
-    const founder = randomGenome();
+    const founder = randomGenome(), founderBrain = newBrain();
     const sp = Species.create(founder, null, this.tick);         // every new tribe starts its own species
     for (let i = 0; i < P.tribeSize; i++) {
       const g = mutateGenome(founder, 0.5, 0.05);
@@ -51,6 +51,7 @@ const Sim = {
       s.energy = s.maxEnergy * 0.7;
       s.age = (Math.random() * MATURE_AGE * 2) | 0;
       s.origin = origin; s.species = sp;
+      s.brain = new Float32Array(founderBrain);              // tribe shares the founder brain (zero output = rules only)
       this.simlets.push(s);
     }
     if (origin !== 'founder') { this.arrivals++; this.dropFx.push({ x: cx, y: cy, t: performance.now() }); }
@@ -113,6 +114,9 @@ const Sim = {
     this.newborns.length = 0;
 
     if (this.tick % 50 === 0) Species.update(this.simlets, this.tick);
+    if (this.brainThinks >= 2000) {             // rolling average size of the brain's score corrections
+      this.brainInfluence = this.brainCorr / this.brainThinks; this.brainCorr = 0; this.brainThinks = 0;
+    }
     if (this.tick % this.history.interval === 0) this.sample();
   },
 
@@ -172,7 +176,9 @@ const Sim = {
       if (left < c.maxEnergy * 0.1) { this.stillborn++; continue; }
       c.energy = Math.min(left, c.maxEnergy);
       c.species = a.species; Species.assign(c, this.tick);
-      if (a.field) c.field = { ...a.field };                   // children grow up knowing the family field       // usually the parent's species; a misfit founds a new one
+      if (a.field) c.field = { ...a.field };
+      const cb = b ? crossBrains(a.brain, b.brain) : new Float32Array(a.brain);
+      c.brain = Brain.mode === 'hybrid' ? mutateBrain(cb, P.mutationRate, P.brainMutSize) : cb;   // brains only evolve while in use                   // children grow up knowing the family field       // usually the parent's species; a misfit founds a new one
       this.newborns.push(c); born++;
     }
     a.breedCd = BREED_COOLDOWN; a.children += born; a.needThink = true; a.breedMode = null;

@@ -145,6 +145,24 @@ NEAT-style clustering:
 
   Slow recovery spreads farming out (more fields, more fallow, slightly more on grassland) but weakens village tightness. Fast recovery gives tight, crop-dependent but small villages.
 
+## 9d. Hybrid brain (`brain.js`)
+
+- **Switch:** left panel, **Brain: rules | Hybrid** (global `Brain.mode`).
+- **Second chromosome:** every simlet carries a brain, a 17-input → 8-hidden (tanh) → 9-output network, 225 weights. In Hybrid mode its outputs are **added to the rule scores** of the actions that are currently possible; impossible actions are set to −∞. The highest final score still wins.
+- **Starts neutral:** founder brains have random input→hidden weights but **zero hidden→output weights**, so a new brain changes nothing. Tribe members share their founder's brain.
+- **Evolution:** brains mutate only while Hybrid is on (rate = `mutationRate`, σ = `brainMutSize`, unclamped). In Rules mode they are copied unchanged, so they don't drift.
+  - **Crossover by whole hidden neuron:** each neuron's input and output weights come from one parent. This avoids splicing two unrelated feature detectors together (the "competing conventions" problem).
+- **Inputs:** energy, hunger, stamina, exhausted, threat score, threat nearness, prey score, prey nearness, prey size, food worth, food nearness, night, bust, kin nearby, ready to breed, age, bias.
+- **Outputs:** corrections for flee, hunt, eat, recall, breed, clone, farm, rest, wander.
+- **Species similarity ignores brains** (trait genes only).
+- **Inspector:** rules / brain / final score per action, plus an input→action "wiring" heat-map (W1·W2, linearised).
+- **Stats:** "Brain influence" = average |correction| per action per decision.
+- **First test (4 shared maps, 24k ticks, rules vs hybrid):**
+  - Brain influence grew steadily: 0.04 at 4k ticks → 0.13–0.20 at 24k.
+  - The brain cut fleeing sharply (rules 13–41% of time → hybrid 2–7%) and raised resting. The rules are over-cautious.
+  - Carnivores persisted for the whole run on 1 of 4 hybrid maps (80–184 carnivores); none did under rules. A browser run on the same map had none, so this is partly chance.
+  - No extinctions in either mode.
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.
@@ -186,4 +204,4 @@ NEAT-style clustering:
 - A night-shading slider.
 - Disturbances (droughts, fires).
 - Mountains (block line of sight).
-- v2: neural-network brains whose weights are genes.
+- Pure neural brain (no rule scores), or adding more brain inputs (e.g. scent, memory of prey).

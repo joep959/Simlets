@@ -40,6 +40,13 @@ const UI = {
       f.text().then(t => { try { World.fromJSON(t); this.mapChanged(); this.clearWorld(); } catch (err) { alert('Could not load map: ' + err.message); } });
       e.target.value = '';
     };
+    const setBrain = m => {
+      Brain.mode = m;
+      $('brainRules').classList.toggle('on', m === 'rules'); $('brainHybrid').classList.toggle('on', m === 'hybrid');
+      if (this.selected) this.renderInspector(true);
+    };
+    $('brainRules').onclick = () => setBrain('rules');
+    $('brainHybrid').onclick = () => setBrain('hybrid');
     $('btnDrop').onclick = () => this.armDrop(!this.dropArmed);
     $('btnReseed').onclick = $('btnReseed2').onclick = () => this.reseed();
 
@@ -175,7 +182,7 @@ const UI = {
       ['Population', Sim.simlets.length], ['Herbivores', h], ['Omnivores', o], ['Carnivores', c],
       ['Food items', Food.count], ['Births', Sim.births], ['↳ sexual / asexual', `${Sim.birthsSex.toLocaleString()} / ${Sim.birthsAsex.toLocaleString()}`], ['Starved', Sim.deaths.starved],
       ['Killed', Sim.deaths.killed], ['Old age', Sim.deaths.old], ['Alarms raised', Sim.alarms],
-      ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Species alive', Species.live.size], ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
+      ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Species alive', Species.live.size], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
     ];
     $('stats').innerHTML = rows.map(([k, v]) => `<span>${k}</span><b>${v.toLocaleString()}</b>`).join('');
     $('extinct').classList.toggle('hidden', Sim.simlets.length > 0 || Sim.tick === 0 || this.mode === 'edit');
@@ -202,6 +209,16 @@ const UI = {
     if (!s) { this._insp = null; this.renderSpeciesList(); return; }
     if (force || this._insp !== s) { this.buildInspector(s); this._insp = s; }
     this.updateInspector(s);
+  },
+
+  brainHeatmap(b) {
+    const m = brainInfluence(b);
+    let mx = 1e-6; for (const r of m) for (const v of r) mx = Math.max(mx, Math.abs(v));
+    const cell = v => { const k = Math.min(1, Math.abs(v) / mx);
+      const c = v >= 0 ? `rgba(217,89,38,${k.toFixed(2)})` : `rgba(57,135,229,${k.toFixed(2)})`;
+      return `<i style="background:${c}" title="${v.toFixed(2)}"></i>`; };
+    return `<div class="bheat"><span></span>${BRAIN_OUT.map(k => `<b>${k.slice(0, 3)}</b>`).join('')}` +
+      m.map((r, i) => `<span>${BRAIN_IN[i]}</span>${[...r].map(cell).join('')}`).join('') + '</div>';
   },
 
   // nothing selected: show the living species, biggest first
@@ -256,6 +273,14 @@ const UI = {
       ${row('Reproduction', `${Math.round(s.g[G.sexuality] * 100)}% sexual`, 'Chance each breeding is sexual (Sexuality gene). Otherwise, or if no mate turns up within 300 ticks, it clones itself.')}
       ${row('Mate similarity ≥', `${(s.minMateSim * 100).toFixed(0)}%`, 'Minimum genetic similarity it accepts in a mate (Choosiness gene). Both partners must accept each other.')}
       ${row('Matures at', `${Math.round(s.matureAge)} ticks`, 'Age before it can breed. Bigger bodies take longer to grow up.')}`;
+    if (Brain.mode === 'hybrid' && s.brain) {
+      html += `<h3>Brain (hybrid)</h3>
+        <p class="hint" style="margin:0 0 6px">Score at its last decision: rules + brain correction = final. Highest final wins.</p>
+        <div class="brow bhead"><span>Action</span><span>Rules</span><span>Brain</span><span>Final</span></div>
+        ${BRAIN_OUT.map(k => `<div class="brow" id="br_${k}"><span>${k}</span><span>–</span><span>–</span><span>–</span></div>`).join('')}
+        <h3 data-tip="Rough map of what this brain has learned: each cell is how strongly an input pushes an action up (orange) or down (blue). It ignores the network's non-linearity, so treat it as a sketch.">Brain wiring (input → action)</h3>
+        ${this.brainHeatmap(s.brain)}`;
+    }
     let group = null;
     GENES.forEach((gene, i) => {
       if (gene.group !== group) { group = gene.group; html += `<h3>${group}</h3>`; }
@@ -285,6 +310,17 @@ const UI = {
     $('iAgeBar').style.width = pct(s.age, s.maxAge);
     const sp = s.species;
     $('iSpecies').innerHTML = sp ? `<i class="sw" style="background:${Species.color(sp)};width:9px;height:9px"></i> S${sp.id}` : '–';
+    if (Brain.mode === 'hybrid' && s.brain && s.baseScores && s.scores && $('br_eat')) {
+      const f = v => v === -Infinity ? '–' : v.toFixed(2);
+      for (let o = 0; o < NO; o++) {
+        const k = BRAIN_OUT[o], el = $('br_' + k), base = s.baseScores[k], fin = s.scores[k];
+        const corr = fin === -Infinity ? null : fin - base;
+        el.children[1].textContent = fin === -Infinity ? 'n/a' : f(base);
+        el.children[2].textContent = corr === null ? '' : (corr >= 0 ? '+' : '') + corr.toFixed(2);
+        el.children[3].textContent = f(fin);
+        el.classList.toggle('bwin', k === s.action);
+      }
+    }
     $('iChildren').textContent = s.children; $('iKills').textContent = s.kills;
     $('iFarmed').textContent = s.farmed; $('iDonated').textContent = s.donated;
   },

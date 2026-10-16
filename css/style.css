@@ -119,5 +119,12 @@ select { background: var(--panel-2); color: var(--ink); border: 1px solid var(--
 .sprow .sw { width: 10px; height: 10px; }
 .sphead { color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; }
 #inspector h2[data-tip] { cursor: help; }
+.brow { display: grid; grid-template-columns: 1fr 48px 48px 48px; gap: 4px; font-size: 12px; padding: 1px 4px; margin: 0 -4px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.brow span:not(:first-child) { text-align: right; }
+.brow.bhead { color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+.brow.bwin { background: var(--panel-2); color: var(--ink); font-weight: 600; border-radius: 4px; }
+.bheat { display: grid; grid-template-columns: 62px repeat(9, 1fr); gap: 1px; font-size: 10px; color: var(--ink-3); align-items: center; }
+.bheat b { font-weight: 400; text-align: center; font-size: 9px; }
+.bheat i { display: block; height: 10px; border-radius: 2px; background: var(--panel-2); }
 .dead-banner { background: #3a1f1f; color: #f0b0b0; padding: 6px 8px; border-radius: 6px; margin-top: 8px; }
 .doing { display: inline-block; padding: 2px 8px; border-radius: 10px; background: var(--panel-2); font-weight: 600; font-size: 11px; letter-spacing: 1px; }
