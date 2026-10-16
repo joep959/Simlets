@@ -102,8 +102,6 @@ const PARAM_TIPS = {
 
 const P = {};
 for (const d of PARAM_DEFS) P[d[1]] = d[6];
-P.preyValue = 0;   // experiment flag: 1 = hunt by expected net gain
-P.carnRest = 0;    // experiment flag: 1 = meat-eaters rest more cheaply
 
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 function gauss() {   // standard normal (Box-Muller)

@@ -101,9 +101,8 @@ function think(s, sim) {
     const ts = g[G.flee] * dis * Math.min(sizeRatio, 3) * closeness * (0.3 + 0.7 * od);   // meat-eaters are the scary ones
     if (ts > threatScore) { threatScore = ts; threat = o; threatD = d; }
     // hunting: driven by aggression, and by hunger if this simlet can digest meat
-    let ps = dis * Math.min(1 / sizeRatio, 2) * closeness * (1 - 0.7 * od) *       // other meat-eaters make poor, risky prey
+    const ps = dis * Math.min(1 / sizeRatio, 2) * closeness * (1 - 0.7 * od) *       // other meat-eaters make poor, risky prey
                (g[G.aggression] * (0.4 + hunger) * 0.6 + s.meatEff * drive * 0.9);
-    if (P.preyValue && ps > 0) ps *= preyWorth(s, o, d, range);
     if (ps > preyScore) { preyScore = ps; prey = o; preyD = d; }
     if (seekMate && d < mateD && o.age >= o.matureAge && o.breedCd === 0 && o.energy > o.maxEnergy * 0.3 &&
         sm >= s.minMateSim && sm >= o.minMateSim) { mate = o; mateD = d; }
@@ -303,8 +302,7 @@ function act(s, sim) {
   s.energy -= P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1);
   // winter cold: extra idle drain in bust, mostly escaped under forest cover
   const cold = World.season(sim.tick) === 1 ? P.winterCold * (here === TERRAIN.FOREST ? 1 - P.forestShelter : 1) : 0;
-  const restMult = P.carnRest ? 0.4 * (1 - 0.6 * s.g[G.diet]) : 0.4;   // optional: predators idle more cheaply (big cats sleep ~20 h/day)
-  s.energy -= P.idleCost * s.drainMult * (1 + cold) * (s.action === 'rest' || s.action === 'farm' ? restMult : 1);
+  s.energy -= P.idleCost * s.drainMult * (1 + cold) * (s.action === 'rest' || s.action === 'farm' ? 0.4 : 1);
 
   // camouflage: breaks with movement, forest boosts it, big bodies show, alarm callers are fully visible
   let c = s.g[G.camo] * 0.85 * (1 - 0.4 * s.g[G.size]);
@@ -340,18 +338,6 @@ function act(s, sim) {
       }
       break;
   }
-}
-
-// Optimal prey choice: expected meal (catch chance × win chance × meat) minus the cost of the chase and attack.
-// Returns a multiplier for the hunt score: 0 = not worth it, ~1 = a decent prospect.
-function preyWorth(s, o, d, range) {
-  const mySprint = s.maxSpeed * P.sprintMult * (s.exhausted ? 0.6 : 1), theirSprint = o.maxSpeed * P.sprintMult;
-  const pCatch = clamp(mySprint / theirSprint - 0.5 + 0.5 * (1 - d / range), 0, 1);
-  const sa = s.mass * (0.5 + 0.5 * s.energy / s.maxEnergy), sd = o.mass * (0.5 + 0.5 * o.energy / o.maxEnergy);
-  const meal = s.meatEff * (P.bodyCost * o.mass * 0.9 + 0.8 * Math.max(0, o.energy));
-  const chaseTicks = d / Math.max(0.02, mySprint * 0.5);
-  const cost = P.attackCost * Math.pow(s.mass, 0.75) + chaseTicks * P.moveCost * s.mass * (mySprint / 0.1) ** 2;
-  return clamp((pCatch * sa / (sa + sd) * meal - cost) / 15, 0, 1.5);
 }
 
 function bite(s, f) {
