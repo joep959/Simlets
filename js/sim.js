@@ -48,7 +48,17 @@ const Sim = {
 
   // A tribe = one new random founder genome + small variations, dropped together around (cx, cy)
   dropTribe(cx, cy, origin) {
-    const founder = randomGenome(), founderBrain = newBrain();
+    const founder = randomGenome();
+    let founderBrain = newBrain();
+    // newcomers (air-drops, immigrants) borrow "local know-how": the brain of a living simlet with a similar diet
+    if (origin !== 'founder' && this.simlets.length) {
+      let donor = null, bd = 1e9;
+      for (let k = 0; k < 40; k++) {
+        const c = this.simlets[(Math.random() * this.simlets.length) | 0], dd = Math.abs(c.g[G.diet] - founder[G.diet]);
+        if (c.brain && dd < bd) { bd = dd; donor = c; }
+      }
+      if (donor) founderBrain = new Float32Array(donor.brain);
+    }
     // lean predator founders: a meat-eating founder has its upkeep genes nudged toward moderate values
     // (a random predator is often a big, long-lived, high-stamina body it can't afford to feed)
     if (P.leanPredators > 0 && founder[G.diet] > 0.66) {

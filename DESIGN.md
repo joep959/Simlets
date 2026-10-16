@@ -200,6 +200,7 @@ NEAT-style clustering:
 - Every tribe starts its own species.
 - Seeding unique individuals doesn't work: random genomes are about 10% similar, below every possible choosiness level, so nobody can mate (tested: zero births).
 - **Air-drop:** a tribe lands where you click. **Immigration:** a tribe lands on random dry land every N ticks (default 3,000, on, to give predators repeated founding chances).
+- **Newcomer brains:** air-drops and immigrants get random genes, but copy the brain of the living simlet (best of 40 sampled) whose diet is closest to theirs: "local know-how". Founders still start with blank brains.
 
 ## 11. Tuning history (lessons)
 

@@ -97,7 +97,7 @@ const PARAM_TIPS = {
   farmCost: 'Energy a simlet spends each time it farms.',
   farmYieldFertile: 'Crop energy produced per unit of farming energy on fertile land. Above 1 = farming is a net gain, if the farmer gets to eat the crop.',
   farmYieldGrass: 'Same as above, on grassland.',
-  immigration: 'Trickle of newcomers: every N ticks a brand-new random tribe lands somewhere on dry land. 0 = off. Newcomers are genetically foreign, so they cannot interbreed with the locals at first.',
+  immigration: 'Trickle of newcomers: every N ticks a brand-new random tribe lands somewhere on dry land. 0 = off. Newcomers have random genes (genetically foreign, so they cannot interbreed with the locals at first) but borrow the brain of a living simlet with a similar diet.',
   tribes: 'Number of founder groups dropped in when you Run a fresh map or Restart. Each tribe gets its own random genome.',
   tribeSize: 'Simlets per founder group, all close relatives of their founder. Also used for air-drops and immigrants.',
   seedSpread: 'How much of the map the starting tribes are scattered over. 1 = anywhere; 0.3 = all tribes start within a region about a third of the map across, so predators and prey share a landscape from day one.',
