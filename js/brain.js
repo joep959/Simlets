@@ -11,7 +11,7 @@ const NI = BRAIN_IN.length, NH = 8, NO = BRAIN_OUT.length;
 const W1_LEN = NI * NH;                       // input -> hidden (the 'bias' input acts as hidden bias)
 const BRAIN_LEN = W1_LEN + (NH + 1) * NO;     // hidden -> output, plus one output bias row
 
-const Brain = { mode: 'rules' };              // 'rules' = brains ignored and frozen; 'hybrid' = brains steer and evolve
+const Brain = { mode: 'hybrid' };              // 'rules' = brains ignored and frozen; 'hybrid' = brains steer and evolve
 
 function newBrain() {
   const b = new Float32Array(BRAIN_LEN);

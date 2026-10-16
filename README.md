@@ -45,8 +45,8 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 
 ## Brains
 
-- **Rules** (default): simlets score each action with hand-written formulas weighted by their genes, and the best score wins.
-- **Hybrid:** each simlet also carries a small neural network. It adds a learned correction to every score.
+- **Rules:** simlets score each action with hand-written formulas weighted by their genes, and the best score wins.
+- **Hybrid** (default): each simlet also carries a small neural network. It adds a learned correction to every score.
   - It starts at zero, so nothing changes at first. Over generations, evolution tunes it and it can come to override the rules.
   - Select a simlet to see the rules-vs-brain scores and a "wiring" heat-map of what its brain has learned.
 

@@ -148,7 +148,7 @@ NEAT-style clustering:
 
 ## 9d. Hybrid brain (`brain.js`)
 
-- **Switch:** left panel, **Brain: rules | Hybrid** (global `Brain.mode`).
+- **Switch:** left panel, **Brain: rules | Hybrid** (global `Brain.mode`, default Hybrid).
 - **Second chromosome:** every simlet carries a brain, a 17-input → 8-hidden (tanh) → 9-output network, 225 weights. In Hybrid mode its outputs are **added to the rule scores** of the actions that are currently possible; impossible actions are set to −∞. The highest final score still wins.
 - **Starts neutral:** founder brains have random input→hidden weights but **zero hidden→output weights**, so a new brain changes nothing. Tribe members share their founder's brain.
 - **Evolution:** brains mutate only while Hybrid is on (rate = `mutationRate`, σ = `brainMutSize`, unclamped). In Rules mode they are copied unchanged, so they don't drift.
