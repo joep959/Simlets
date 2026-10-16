@@ -50,6 +50,10 @@ const UI = {
     $('btnDrop').onclick = () => this.armDrop(!this.dropArmed);
     $('btnReseed').onclick = $('btnReseed2').onclick = () => this.reseed();
 
+    $('legendBtn').onclick = () => {
+      const c = $('legend').classList.toggle('collapsed');
+      $('legendBtn').textContent = c ? 'Key ▸' : 'Key ▾';
+    };
     $('scentBtn').onclick = () => {
       Render.showScent = !Render.showScent;
       $('scentBtn').textContent = 'Scent: ' + (Render.showScent ? 'on' : 'off');
@@ -211,7 +215,7 @@ const UI = {
   // ---- right-panel inspector: built once per selection, then live values updated in place ----
   renderInspector(force) {
     const s = this.selected, el = $('inspector');
-    if (!s) { this._insp = null; this.renderSpeciesList(); return; }
+    if (!s) { this._insp = null; Render.highlight = null; this.renderSpeciesList(); return; }
     if (force || this._insp !== s) { this.buildInspector(s); this._insp = s; }
     this.updateInspector(s);
   },
@@ -238,6 +242,35 @@ const UI = {
       `</div><p class="hint" style="margin-top:6px"><b style="color:#d95926">■</b> raises the action · <b style="color:#3987e5">■</b> lowers it · stronger colour = stronger effect, relative to this brain's strongest link${mx > 0 ? ` (${mx.toFixed(2)})` : ''}. Blank = no effect. Hover a cell for details.</p>`;
   },
 
+  // Relatives among the living: parents, children (either parent), siblings (share a parent), plus species-mates
+  updateFamily(s) {
+    const mode = this.hlMode || 'none';
+    document.querySelectorAll('#inspector .hl').forEach(b => b.classList.toggle('on', b.dataset.hl === mode));
+    const parents = [], children = [], siblings = [], roles = new Map();
+    let speciesCount = 0;
+    for (const o of Sim.simlets) {
+      if (o === s) continue;
+      if (s.parents.includes(o.id)) { parents.push(o); roles.set(o, 'parent'); }
+      else if (o.parents.includes(s.id)) { children.push(o); roles.set(o, 'child'); }
+      else if (s.parents.length && o.parents.some(p => s.parents.includes(p))) { siblings.push(o); roles.set(o, 'sibling'); }
+      if (o.species === s.species) speciesCount++;
+    }
+    const chips = (list, role) => list.length
+      ? list.slice(0, 12).map(o => `<span class="chip" style="border-color:${HIGHLIGHT_COLORS[role]}" data-id="${o.id}">#${o.id}</span>`).join('') + (list.length > 12 ? ` <span class="muted">+${list.length - 12}</span>` : '')
+      : '<span class="muted">none alive</span>';
+    const deadParents = s.parents.filter(id => !parents.some(p => p.id === id)).map(id => `<span class="chip dead">#${id} †</span>`).join('');
+    $('iFamily').innerHTML =
+      `<div class="frow"><span>Parents</span><div>${s.parents.length ? chips(parents, 'parent') + deadParents : '<span class="muted">founder / newcomer</span>'}</div></div>` +
+      `<div class="frow"><span>Children</span><div>${chips(children, 'child')}</div></div>` +
+      `<div class="frow"><span>Siblings</span><div>${chips(siblings, 'sibling')}</div></div>` +
+      `<div class="frow"><span>Species</span><div>S${s.species ? s.species.id : '–'} · ${speciesCount} others alive</div></div>`;
+    if (mode === 'family') Render.highlight = { roles, self: s };
+    else if (mode === 'species') {
+      const r = new Map(); for (const o of Sim.simlets) if (o !== s && o.species === s.species) r.set(o, 'species');
+      Render.highlight = { roles: r, self: s };
+    } else Render.highlight = null;
+  },
+
   // nothing selected: show the living species, biggest first
   renderSpeciesList() {
     const list = [...Species.live.values()].sort((a, b) => b.count - a.count);
@@ -262,6 +295,13 @@ const UI = {
         <button class="btn sm" id="iFollow"></button>
         <button class="btn sm" id="iClose">Close</button>
       </div>
+      <div class="insp-actions" data-tip="Highlight this simlet's relatives or its whole species on the map; everyone else fades. Gold = parents, teal = children, white = siblings, lilac = same species.">
+        <span class="muted" style="align-self:center">Highlight:</span>
+        <button class="btn sm hl" data-hl="none">Off</button>
+        <button class="btn sm hl" data-hl="family">Family</button>
+        <button class="btn sm hl" data-hl="species">Species</button>
+      </div>
+      <div id="iFamily" class="family"></div>
       <div id="iDead" class="dead-banner hidden"></div>
       <span id="iAction" class="doing"></span>
       <p class="hint">Hover any row for an explanation.</p>
@@ -306,12 +346,18 @@ const UI = {
     });
     $('inspector').innerHTML = html;
     $('iFollow').onclick = () => { this.follow = !this.follow; this.updateInspector(s); };
+    document.querySelectorAll('#inspector .hl').forEach(b => b.onclick = () => { this.hlMode = b.dataset.hl; this.updateInspector(s); });
+    $('iFamily').onclick = e => {                            // click a relative's chip to jump to it
+      const id = e.target.dataset && e.target.dataset.id; if (!id) return;
+      const t = Sim.simlets.find(x => x.id === +id); if (t) { this.selected = t; this.renderInspector(true); }
+    };
     $('iClose').onclick = () => { this.selected = null; this.follow = false; this.renderInspector(true); };
   },
 
   updateInspector(s) {
     const pct = (a, b) => (clamp(a / b, 0, 1) * 100).toFixed(1) + '%';
     $('iFollow').textContent = this.follow ? 'Unfollow' : 'Follow';
+    this.updateFamily(s);
     const dead = $('iDead'), act = $('iAction');
     if (s.dead) {
       dead.textContent = `Died: ${s.cause} at tick ${s.diedAt}`; dead.classList.remove('hidden'); act.classList.add('hidden');

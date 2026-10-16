@@ -66,22 +66,23 @@
     <div id="mapWrap">
       <canvas id="map"></canvas>
       <div id="extinct" class="hidden">Extinct. <button id="btnReseed2" class="btn primary">Restart</button></div>
-      <div id="legend">
-        <span><i class="sw" style="background:#6aa84f"></i>Fertile</span>
-        <span><i class="sw" style="background:#d6cf98"></i>Grassland</span>
-        <span><i class="sw" style="background:#3d6b45"></i>Forest</span>
-        <span><i class="sw" style="background:#4a86c0"></i>Water</span>
-        <span><i class="sw" style="background:#deeef8"></i>Ice</span>
-        <span><i class="dot" style="background:#9be36b"></i>Plant</span>
-        <span><i class="sw" style="background:#7a522c"></i>Farmland</span>
-        <span><i class="sw" style="background:#8a7c6c"></i>Fallow</span>
-        <span><i class="dot" style="background:#b5d65a;border:1px solid #3a2a00"></i>Growing crop</span>
-        <span><i class="dot" style="background:#f2a51a;border:1px solid #462300"></i>Crop</span>
-        <span><i class="dot" style="background:#9a9a9a"></i>Corpse</span>
-        <span class="lsep"></span>
-        <span><b style="color:#199e70">●</b>Herbivore</span>
-        <span><b style="color:#3987e5">◆</b>Omnivore</span>
-        <span><b style="color:#d95926">▲</b>Carnivore</span>
+      <div id="legend" class="collapsed">
+        <button id="legendBtn" class="btn sm">Key ▸</button>
+        <span class="lk"><i class="sw" style="background:#6aa84f"></i>Fertile</span>
+        <span class="lk"><i class="sw" style="background:#d6cf98"></i>Grassland</span>
+        <span class="lk"><i class="sw" style="background:#3d6b45"></i>Forest</span>
+        <span class="lk"><i class="sw" style="background:#4a86c0"></i>Water</span>
+        <span class="lk"><i class="sw" style="background:#deeef8"></i>Ice</span>
+        <span class="lk"><i class="dot" style="background:#9be36b"></i>Plant</span>
+        <span class="lk"><i class="sw" style="background:#7a522c"></i>Farmland</span>
+        <span class="lk"><i class="sw" style="background:#8a7c6c"></i>Fallow</span>
+        <span class="lk"><i class="dot" style="background:#b5d65a;border:1px solid #3a2a00"></i>Growing crop</span>
+        <span class="lk"><i class="dot" style="background:#f2a51a;border:1px solid #462300"></i>Crop</span>
+        <span class="lk"><i class="dot" style="background:#9a9a9a"></i>Corpse</span>
+        <span class="lk lsep"></span>
+        <span class="lk"><b style="color:#199e70">●</b>Herbivore</span>
+        <span class="lk"><b style="color:#3987e5">◆</b>Omnivore</span>
+        <span class="lk"><b style="color:#d95926">▲</b>Carnivore</span>
         <button id="scentBtn" class="btn sm">Scent: off</button>
         <button id="colorBy" class="btn sm">Colour: species</button>
       </div>

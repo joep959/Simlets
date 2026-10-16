@@ -2,13 +2,15 @@
 // Draws terrain, food and simlets onto the map canvas. Camera = pan + zoom (pixels per tile).
 
 const TILE_PX = 6;
+const HIGHLIGHT_COLORS = { parent: '#f2c94c', child: '#4fd1c5', sibling: '#ffffff', species: '#c9a7ff' };
 const DIET_COLORS = ['#199e70', '#3987e5', '#d95926'];   // herbivore, omnivore, carnivore (same as charts)   // resolution of the cached terrain image
 const Render = {
   canvas: null, ctx: null, terrainCanvas: null,
   cam: { x: WORLD_W / 2, y: WORLD_H / 2, zoom: 5 },   // centre of view (tiles) and pixels per tile
   dpr: 1, w: 0, h: 0,
   colorBy: 'species',
-  showScent: false, scentCanvas: null, scentFrame: 0,   // 'diet' = herbivore/omnivore/carnivore, 'lineage' = colour from genome, 'species' = cluster colour
+  showScent: false, scentCanvas: null, scentFrame: 0,
+  highlight: null,   // { roles: Map(simlet -> 'parent'|'child'|'sibling'|'species'), self } set by the inspector   // 'diet' = herbivore/omnivore/carnivore, 'lineage' = colour from genome, 'species' = cluster colour
 
   init(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d');
@@ -170,6 +172,8 @@ const Render = {
       const col = this.colorBy === 'diet' ? DIET_COLORS[cls] : this.colorBy === 'species' ? Species.color(s.species) : s.color;
       let alpha = 1 - 0.65 * s.camoEff;
       if (s.action === 'rest') alpha *= 0.55;
+      const role = this.highlight ? this.highlight.roles.get(s) : null;
+      if (this.highlight && !role && s !== this.highlight.self) alpha *= 0.18;   // fade everyone not highlighted
       if (s.sprinting && s.curSpeed > 0) {                 // motion trail
         ctx.strokeStyle = col; ctx.globalAlpha = 0.35 * alpha; ctx.lineWidth = r * 0.8;
         ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - Math.cos(h) * r * 3.5, sy - Math.sin(h) * r * 3.5); ctx.stroke();
@@ -193,6 +197,10 @@ const Render = {
       }
       ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.globalAlpha = 1;
+      if (role) {                                           // relative / species-mate ring
+        ctx.strokeStyle = HIGHLIGHT_COLORS[role]; ctx.lineWidth = role === 'species' ? 1.5 : 2.5;
+        ctx.beginPath(); ctx.arc(sx, sy, r + 4, 0, 7); ctx.stroke();
+      }
       if (s.alarmFlash > 0) {
         ctx.strokeStyle = `rgba(255,255,255,${(s.alarmFlash / 30).toFixed(2)})`; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(sx, sy, r * (1.5 + (30 - s.alarmFlash) / 4), 0, 7); ctx.stroke();

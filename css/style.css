@@ -73,6 +73,7 @@ summary { cursor: pointer; color: var(--ink-2); font-weight: 600; padding: 2px 0
 #legend { position: absolute; left: 10px; bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap;
           background: rgba(15,17,19,0.75); padding: 4px 8px; border-radius: 6px; color: var(--ink-2); font-size: 11px; }
 #legend span { display: flex; align-items: center; gap: 4px; }
+#legend.collapsed .lk { display: none; }
 #legend .lsep { width: 1px; align-self: stretch; background: var(--line); }
 #legend .btn.sm { padding: 1px 8px; font-size: 11px; }
 #inspector .insp-sw.insp-sw { border-radius: 50%; }
@@ -127,5 +128,10 @@ select { background: var(--panel-2); color: var(--ink); border: 1px solid var(--
 .bheat > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bheat b { font-weight: 400; text-align: center; font-size: 9px; overflow: hidden; }
 .bheat i { display: block; height: 10px; border-radius: 2px; background: var(--panel-2); }
+.family { margin: 6px 0 4px; }
+.frow { display: grid; grid-template-columns: 62px 1fr; gap: 6px; font-size: 12px; color: var(--ink-2); padding: 2px 0; align-items: start; }
+.chip { display: inline-block; padding: 0 6px; margin: 0 3px 3px 0; border: 1px solid; border-radius: 9px; font-size: 11px; color: var(--ink); cursor: pointer; }
+.chip.dead { border-color: var(--line); color: var(--ink-3); cursor: default; }
+.btn.hl.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .dead-banner { background: #3a1f1f; color: #f0b0b0; padding: 6px 8px; border-radius: 6px; margin-top: 8px; }
 .doing { display: inline-block; padding: 2px 8px; border-radius: 10px; background: var(--panel-2); font-weight: 600; font-size: 11px; letter-spacing: 1px; }
