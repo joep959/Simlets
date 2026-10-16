@@ -213,12 +213,24 @@ const UI = {
 
   brainHeatmap(b) {
     const m = brainInfluence(b);
-    let mx = 1e-6; for (const r of m) for (const v of r) mx = Math.max(mx, Math.abs(v));
-    const cell = v => { const k = Math.min(1, Math.abs(v) / mx);
+    let mx = 0; for (const r of m) for (const v of r) mx = Math.max(mx, Math.abs(v));
+    const tip = t => ` data-tip="${t.replace(/"/g, '&quot;')}"`;
+    const cell = (v, i, o) => {
+      const k = mx > 0 ? Math.min(1, Math.abs(v) / mx) : 0;
       const c = v >= 0 ? `rgba(217,89,38,${k.toFixed(2)})` : `rgba(57,135,229,${k.toFixed(2)})`;
-      return `<i style="background:${c}" title="${v.toFixed(2)}"></i>`; };
-    return `<div class="bheat"><span></span>${BRAIN_OUT.map(k => `<b>${k.slice(0, 3)}</b>`).join('')}` +
-      m.map((r, i) => `<span>${BRAIN_IN[i]}</span>${[...r].map(cell).join('')}`).join('') + '</div>';
+      const act = BRAIN_ACTION_NAMES[BRAIN_OUT[o]], inp = BRAIN_INPUT_TIPS[BRAIN_IN[i]];
+      let t;
+      if (Math.abs(v) < 0.01) t = `${inp} → ${act}: no learned effect yet.`;
+      else {
+        const dir = v > 0 ? 'RAISES' : 'LOWERS', when = BRAIN_IN[i] === 'bias' ? 'Always' : 'When this input is high (1)';
+        const size = Math.abs(v) < 0.05 ? 'a tiny amount' : Math.abs(v) < 0.2 ? 'a little' : Math.abs(v) < 0.5 ? 'noticeably' : 'strongly';
+        t = `${inp} → ${act}. ${when}, the brain ${dir} the ${act} score by about ${Math.abs(v).toFixed(2)} (${size}; rule scores are usually 0.1–1.5). Rough guide only: ignores how inputs combine.`;
+      }
+      return `<i style="background:${c}"${tip(t)}></i>`;
+    };
+    return `<div class="bheat"><span></span>${BRAIN_OUT.map(k => `<b${tip('Column: ' + BRAIN_ACTION_NAMES[k])}>${k.slice(0, 3)}</b>`).join('')}` +
+      m.map((r, i) => `<span${tip('Row input: ' + BRAIN_INPUT_TIPS[BRAIN_IN[i]])}>${BRAIN_IN[i]}</span>${[...r].map((v, o) => cell(v, i, o)).join('')}`).join('') +
+      `</div><p class="hint" style="margin-top:6px"><b style="color:#d95926">■</b> raises the action · <b style="color:#3987e5">■</b> lowers it · stronger colour = stronger effect, relative to this brain's strongest link${mx > 0 ? ` (${mx.toFixed(2)})` : ''}. Blank = no effect. Hover a cell for details.</p>`;
   },
 
   // nothing selected: show the living species, biggest first
@@ -276,8 +288,8 @@ const UI = {
     if (Brain.mode === 'hybrid' && s.brain) {
       html += `<h3>Brain (hybrid)</h3>
         <p class="hint" style="margin:0 0 6px">Score at its last decision: rules + brain correction = final. Highest final wins.</p>
-        <div class="brow bhead"><span>Action</span><span>Rules</span><span>Brain</span><span>Final</span></div>
-        ${BRAIN_OUT.map(k => `<div class="brow" id="br_${k}"><span>${k}</span><span>–</span><span>–</span><span>–</span></div>`).join('')}
+        <div class="brow bhead" data-tip="Rules = the score from the hand-written formulas. Brain = the learned correction added on top (n/a = action not possible right now). Final = Rules + Brain; the highest final wins and is highlighted."><span>Action</span><span>Rules</span><span>Brain</span><span>Final</span></div>
+        ${BRAIN_OUT.map(k => `<div class="brow" id="br_${k}" data-tip="${BRAIN_ACTION_NAMES[k]}: ${(ACTION_TIPS[k] || '').replace(/"/g, '')}"><span>${k}</span><span>–</span><span>–</span><span>–</span></div>`).join('')}
         <h3 data-tip="Rough map of what this brain has learned: each cell is how strongly an input pushes an action up (orange) or down (blue). It ignores the network's non-linearity, so treat it as a sketch.">Brain wiring (input → action)</h3>
         ${this.brainHeatmap(s.brain)}`;
     }
@@ -324,6 +336,22 @@ const UI = {
     $('iChildren').textContent = s.children; $('iKills').textContent = s.kills;
     $('iFarmed').textContent = s.farmed; $('iDonated').textContent = s.donated;
   },
+};
+
+// Plain-English labels for the brain heat-map
+const BRAIN_INPUT_TIPS = {
+  energy: 'Energy level (0 empty, 1 full)', hunger: 'How urgently it needs food', stamina: 'Sprint meter (0 empty, 1 full)',
+  exhausted: 'Exhausted: sprint meter ran out (1 = yes)', threat: 'How threatening the scariest visible simlet is',
+  threatNear: 'How close that threat is (1 = right here)', prey: 'How attractive the best visible prey is',
+  preyNear: 'How close that prey is (1 = right here)', preySize: 'Prey size relative to itself (higher = bigger prey)',
+  food: 'Value of the best visible food (net energy)', foodNear: 'How close that food is (1 = right here)',
+  night: 'Darkness (0 noon, 1 midnight)', bust: 'Bust season (1 = bust, 0 = boom)', kin: 'Relatives nearby (1 = five or more)',
+  ready: 'Ready to breed (1 = yes)', age: 'Age as a fraction of its maximum lifespan',
+  bias: 'Constant input that is always 1: the brain\'s default leaning, whatever the situation',
+};
+const BRAIN_ACTION_NAMES = {
+  flee: 'Flee', hunt: 'Hunt', eat: 'Eat', recall: 'Go to remembered food', breed: 'Seek a mate',
+  clone: 'Clone (asexual breeding)', farm: 'Farm', rest: 'Rest', wander: 'Wander',
 };
 
 // What the simlet is currently doing (the action that scored highest at its last decision)
