@@ -38,6 +38,7 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
   - Forest: boosts camouflage, cuts vision.
   - Water: crossable, but movement costs about 6× and speed is halved.
 - **Seasons:** boom and bust alternate. In bust, fertile and grassland food grows at 25% of the boom rate, it's **cold** (higher energy drain, except under forest cover), and **ice** grows out from the shores, so narrow rivers become crossable bridges (Winter sliders).
+- **Food ladder:** fertile land gives the most food, grassland second, forest the least. But forest food is steady all year, while fertile and grassland drop to a quarter in bust.
 - **Forest:** low but steady food all year, plus shelter from the cold. It's the winter refuge.
 - **Day/night:** night cuts vision range by 40% and makes resting more attractive.
 - **Food:** wild plants rot. Farmed crops take 300 ticks to grow, keep 4× longer than wild plants (Crop storage slider) and anyone can eat them. Corpses are meat and decay over time.

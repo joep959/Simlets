@@ -170,7 +170,9 @@ NEAT-style clustering:
   - Every 100 ticks during bust: reach = iceReach · sin(π · bust progress), so it grows and then thaws. A water tile freezes if shoreDist + fixed smooth noise (±1.5) ≤ reach.
   - Then a 3×3 morphological **closing** (dilate, then erode, with land counted as solid) fills pinholes and joins floes.
   - Ice walks like land (no water speed or cost penalty), and water avoidance ignores it. Narrow rivers bridge; wide lakes freeze only at the rims.
-- **Forest food:** `forestSpawn` (default 0.15‰ per tile per tick) is **not** reduced in bust.
+- **Forest food:** `forestSpawn` (default 0.1‰ per tile per tick) is **not** reduced in bust.
+- **Food ladder (Joe's choice, Oct 2026):** wild food per tile per tick, boom / bust: fertile 1.5 / 0.375‰, grassland 0.2 / 0.05‰, forest 0.1 / 0.1‰. Forest is the poorest in boom but beats grassland in bust.
+  - Test vs the previous 0.03 / 0.15: bust lows 2–3× higher (177–295 vs 53–168), but villages were mixed (settled 40/5/9% vs 25/8/33%), crops' share fell on 2 of 3 maps, and bust forest use dropped about 4–10 points.
 - **Winter cold:** in bust, idle drain × (1 + winterCold), with winterCold default 0.5. In forest, the extra is × (1 − forestShelter), default 0.7.
 - **Test (3 shared maps, 18k ticks, hybrid):**
 
