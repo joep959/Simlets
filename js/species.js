@@ -55,13 +55,16 @@ const Species = {
       sp.dietMean = sp.dietSum / sp.count;
     }
     // hand free colours to the biggest uncoloured species; a species keeps its colour for life
-    const waiting = [...this.live.values()].filter(sp => sp.slot < 0 && sp.count >= SLOT_MIN).sort((a, b) => b.count - a.count);
+    const waiting = [...this.live.values()].filter(sp => sp.slot < 0 && sp.count >= Math.max(SLOT_MIN, P.speciesMinShown)).sort((a, b) => b.count - a.count);
     for (const sp of waiting) {
       const free = this.slots.indexOf(null);
       if (free < 0) break;
       this.slots[free] = sp.id; sp.slot = free;
     }
   },
+
+  // species big enough to be shown on their own (smaller ones are lumped into "Other" in the UI)
+  shown() { return [...this.live.values()].filter(sp => sp.count >= P.speciesMinShown); },
 
   color(sp) { return sp && sp.slot >= 0 ? SPECIES_COLORS[sp.slot] : OTHER_COLOR; },
 

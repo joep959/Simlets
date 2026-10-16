@@ -191,7 +191,7 @@ const UI = {
       ['Population', Sim.simlets.length], ['Herbivores', h], ['Omnivores', o], ['Carnivores', c],
       ['Food items', Food.count], ['Births', Sim.births], ['↳ sexual / asexual', `${Sim.birthsSex.toLocaleString()} / ${Sim.birthsAsex.toLocaleString()}`], ['Starved', Sim.deaths.starved],
       ['Killed', Sim.deaths.killed], ['Old age', Sim.deaths.old], ['Alarms raised', Sim.alarms],
-      ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Species alive', Species.live.size], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
+      ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Species alive', Species.shown().length], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
     ];
     $('stats').innerHTML = rows.map(([k, v]) => `<span>${k}</span><b>${v.toLocaleString()}</b>`).join('');
     $('extinct').classList.toggle('hidden', Sim.simlets.length > 0 || Sim.tick === 0 || this.mode === 'edit');
@@ -273,15 +273,18 @@ const UI = {
 
   // nothing selected: show the living species, biggest first
   renderSpeciesList() {
-    const list = [...Species.live.values()].sort((a, b) => b.count - a.count);
+    const all = [...Species.live.values()].sort((a, b) => b.count - a.count);
+    const list = all.filter(sp => sp.count >= P.speciesMinShown), small = all.filter(sp => sp.count < P.speciesMinShown);
+    const smallN = small.reduce((a, sp) => a + sp.count, 0);
     const glyph = d => d < 0.33 ? '<b style="color:#199e70">●</b>' : d > 0.66 ? '<b style="color:#d95926">▲</b>' : '<b style="color:#3987e5">◆</b>';
     const rows = list.slice(0, 25).map(sp => `<div class="sprow"><i class="sw" style="background:${Species.color(sp)}"></i>` +
       `<b>S${sp.id}</b><span class="num">${sp.count}</span><span>${glyph(sp.dietMean)} ${sp.dietMean.toFixed(2)}</span>` +
       `<span class="muted">${sp.parent ? 'from S' + sp.parent : 'tribe'} · t${sp.born}</span></div>`).join('');
     $('inspector').innerHTML = `<p class="hint" style="margin:0 0 10px">Click a simlet to inspect its genome.</p>
-      <h2 data-tip="A species is a cluster of genetically similar simlets (threshold set by the Species similarity slider under Evolution). When part of a species drifts too far from the rest, it splits off as a new species; 'from' shows which species it split from.">Species (${list.length} alive)</h2>
+      <h2 data-tip="A species is a cluster of genetically similar simlets (threshold set by the Species similarity slider under Evolution). When part of a species drifts too far from the rest, it splits off as a new species; 'from' shows which species it split from.">Species (${list.length} alive${small.length ? ` + ${small.length} small` : ''})</h2>
       <div class="sprow sphead"><i></i><span>ID</span><span class="num">Count</span><span>Diet</span><span>Origin</span></div>
-      ${rows}${list.length > 25 ? `<p class="hint">+ ${list.length - 25} smaller species</p>` : ''}`;
+      ${rows}${list.length > 25 ? `<p class="hint">+ ${list.length - 25} more species</p>` : ''}
+      ${small.length ? `<div class="sprow" data-tip="Species with fewer than ${P.speciesMinShown} members (Smallest species listed slider, Evolution section), lumped together."><i class="sw" style="background:${OTHER_COLOR}"></i><b>Other</b><span class="num">${smallN}</span><span class="muted" style="grid-column: span 2">${small.length} small species</span></div>` : ''}`;
   },
 
   buildInspector(s) {
