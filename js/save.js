@@ -17,7 +17,7 @@ const Save = {
       memory: s.memory, field: s.field, species: s.species ? s.species.id : null, inShelter: s.inShelter ? s.inShelter.ti : null, built: s.built || 0, home: s.home, project: s.project,
     }));
     const foods = [];
-    Food.forEach(f => foods.push([r4(f.x), r4(f.y), r4(f.e), r4(f.e0 || 0), f.born, f.ready, f.type]));
+    Food.forEach(f => foods.push([r4(f.x), r4(f.y), r4(f.e), r4(f.e0 || 0), f.born, f.ready, f.type, f.rot || 0]));
     return {
       version: SAVE_VERSION, savedAt: new Date().toISOString(),
       params: { ...P }, brainMode: Brain.mode, nextId: NEXT_ID,
@@ -72,7 +72,7 @@ const Save = {
     Shelters.ruins = new Map(o.shelters.ruins);
     for (const t of o.shelters.tiles) Shelters.tiles.set(t.ti, { ...t, owner: Float32Array.from(t.owner), x: t.ti % WORLD_W + 0.5, y: ((t.ti / WORLD_W) | 0) + 0.5, occ: 0 });
     // food
-    for (const [x, y, e, e0, born, ready, type] of o.food) Food.add({ x, y, e, e0, born, ready, type });
+    for (const [x, y, e, e0, born, ready, type, rot] of o.food) Food.add({ x, y, e, e0, born, ready, type, rot: rot || 0 });
     // simlets: rebuild through the constructor (re-derives body stats), then restore their state
     for (const d of o.simlets) {
       const s = new Simlet(Float32Array.from(d.g), d.x, d.y, d.energy, d.gen, d.parents);

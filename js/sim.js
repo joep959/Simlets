@@ -161,15 +161,19 @@ const Sim = {
   },
 
   rotFood() {
-    const tick = this.tick;
+    const tick = this.tick, boom = World.season(tick) === 0;
     Food.forEach(f => {
       // decay feeds the soil: rotting corpses and food return nutrients to the tile they lie on
       if (f.type === 2) {
         const d = Math.min(f.e, f.e0 * 25 / CORPSE_ROT);
         f.e -= d; World.addNutrients(f.x, f.y, d * SOIL_PER_ENERGY);
         if (f.e <= 0.5) Food.remove(f);
-      } else if (tick - f.ready > P.rotTime * (f.type === 1 ? P.cropKeep : 1)) {       // crops store better
-        World.addNutrients(f.x, f.y, f.e * SOIL_PER_ENERGY); Food.remove(f);
+      } else if (tick >= f.ready) {
+        // plants age faster in the warm boom (boomRot ×), normally in bust; stored food in shelters never rots
+        f.rot = (f.rot || 0) + 25 * (boom ? P.boomRot : 1);
+        if (f.rot > P.rotTime * (f.type === 1 ? P.cropKeep : 1)) {                  // crops store better
+          World.addNutrients(f.x, f.y, f.e * SOIL_PER_ENERGY); Food.remove(f);
+        }
       }
     });
   },

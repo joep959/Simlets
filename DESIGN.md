@@ -237,6 +237,10 @@ NEAT-style clustering:
   - Survival is now better than main on 2 of 3 maps, and better still with the long winter.
   - But simlets **hoard**: stores fill and are rarely eaten, and thrift evolved to 0.33–0.92. Indoor time is still only 3–12% in bust.
 
+- **Boom rot** (`boomRot`, default ×2): wild plants and field crops age faster in boom. Stored food never rots.
+  - Test (5 of 6 runs): stores fuller and draining in winter on 2 of 3 maps (map 3: 88 → 55; map 2: 500 → 443, vs map 3 at ×1: 57 → 39). Map 1 still hoards (stores grow through bust).
+  - Survival mixed: lowest bust 173 vs 85 (map 3), 275 vs 353 (map 1).
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.
