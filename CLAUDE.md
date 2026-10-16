@@ -5,7 +5,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 ## Architecture
 
 - Plain HTML/JS/CSS, **no build step and no server**: it must work by double-clicking `index.html` (file://). So **no ES modules**. Every `js/*.js` is a classic script sharing globals, loaded in the order in `index.html`: config → genome → brain → species → world → simlet → sim → render → charts → ui → main.
-- **Version control:** git repo. `main` = snapshot before the hybrid brain; feature work happens on branches (the brain is on `hybrid-brain`). Commit before risky changes so Joe can always roll back.
+- **Version control:** git repo on `main` (the hybrid brain was built on `hybrid-brain` and merged; the first commit is the pre-brain snapshot). Do risky work on a branch and commit often so Joe can always roll back; merge when he says so.
 - Key globals:
   - `P`: live slider values
   - `G`: gene name → index
