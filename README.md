@@ -69,7 +69,7 @@ Every gene has a cost or a trade-off. Hover a gene in the inspector for the spec
 
 - Paint a river splitting two fertile zones. Switch to **Colour: species** and watch whether the two sides drift apart.
 - Let the world settle, then **air-drop** a tribe into the middle of a herd.
-- Turn on **Immigration** (Immigration section) and see whether carnivores can hang on.
+- **Immigration** is on by default (a new random tribe every 3,000 ticks), so each arrival is another chance for predators to establish. Set it to 0 for a closed world.
 - Drag **Plant eating speed** low or high and compare how often predators appear.
 - Raise the **Species similarity threshold** to see finer splits.
 

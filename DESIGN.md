@@ -199,7 +199,7 @@ NEAT-style clustering:
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.
 - Every tribe starts its own species.
 - Seeding unique individuals doesn't work: random genomes are about 10% similar, below every possible choosiness level, so nobody can mate (tested: zero births).
-- **Air-drop:** a tribe lands where you click. **Immigration:** a tribe lands on random dry land every N ticks.
+- **Air-drop:** a tribe lands where you click. **Immigration:** a tribe lands on random dry land every N ticks (default 3,000, on, to give predators repeated founding chances).
 
 ## 11. Tuning history (lessons)
 

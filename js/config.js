@@ -56,7 +56,7 @@ const PARAM_DEFS = [
   ['Costs',      'farmCost',         'Farming cost',                    1,    40,   1,     8],
   ['Costs',      'farmYieldFertile', 'Farm yield on fertile ×',         0,    4,    0.1,   2.0],
   ['Costs',      'farmYieldGrass',   'Farm yield on grassland ×',       0,    4,    0.1,   1.4],
-  ['Immigration', 'immigration',     'New tribe every N ticks (0 = off)', 0,   20000, 500,  0],
+  ['Immigration', 'immigration',     'New tribe every N ticks (0 = off)', 0,   20000, 500,  3000],
   ['Population', 'tribes',           'Starting tribes',                 1,    20,   1,     8],
   ['Population', 'tribeSize',        'Simlets per tribe',               2,    60,   1,     20],
   ['Population', 'seedSpread',       'Starting spread (share of map)',  0.1,  1,    0.05,  1],

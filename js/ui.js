@@ -233,7 +233,7 @@ const UI = {
       }
       return `<i style="background:${c}"${tip(t)}></i>`;
     };
-    return `<div class="bheat"><span></span>${BRAIN_OUT.map(k => `<b${tip('Column: ' + BRAIN_ACTION_NAMES[k])}>${k.slice(0, 3)}</b>`).join('')}` +
+    return `<div class="bheat" style="grid-template-columns: 66px repeat(${NO}, minmax(0, 1fr))"><span></span>${BRAIN_OUT.map(k => `<b${tip('Column: ' + BRAIN_ACTION_NAMES[k])}>${k.slice(0, 3)}</b>`).join('')}` +
       m.map((r, i) => `<span${tip('Row input: ' + BRAIN_INPUT_TIPS[BRAIN_IN[i]])}>${BRAIN_IN[i]}</span>${[...r].map((v, o) => cell(v, i, o)).join('')}`).join('') +
       `</div><p class="hint" style="margin-top:6px"><b style="color:#d95926">■</b> raises the action · <b style="color:#3987e5">■</b> lowers it · stronger colour = stronger effect, relative to this brain's strongest link${mx > 0 ? ` (${mx.toFixed(2)})` : ''}. Blank = no effect. Hover a cell for details.</p>`;
   },
