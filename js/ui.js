@@ -347,6 +347,9 @@ const BRAIN_INPUT_TIPS = {
   food: 'Value of the best visible food (net energy)', foodNear: 'How close that food is (1 = right here)',
   night: 'Darkness (0 noon, 1 midnight)', bust: 'Bust season (1 = bust, 0 = boom)', kin: 'Relatives nearby (1 = five or more)',
   ready: 'Ready to breed (1 = yes)', age: 'Age as a fraction of its maximum lifespan',
+  inForest: 'Standing in forest (1 = yes): cover, shelter from winter cold, shorter sight',
+  onWater: 'Standing in open water (1 = yes; ice does not count)',
+  freshSoil: 'Standing on farmable land with fresh (non-exhausted) soil (1 = yes)',
   bias: 'Constant input that is always 1: the brain\'s default leaning, whatever the situation',
 };
 const BRAIN_ACTION_NAMES = {

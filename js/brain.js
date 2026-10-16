@@ -5,7 +5,8 @@
 // (species similarity keeps using trait genes only).
 
 const BRAIN_IN = ['energy', 'hunger', 'stamina', 'exhausted', 'threat', 'threatNear', 'prey', 'preyNear',
-                  'preySize', 'food', 'foodNear', 'night', 'bust', 'kin', 'ready', 'age', 'bias'];
+                  'preySize', 'food', 'foodNear', 'night', 'bust', 'kin', 'ready', 'age',
+                  'inForest', 'onWater', 'freshSoil', 'bias'];
 const BRAIN_OUT = ['flee', 'hunt', 'eat', 'recall', 'breed', 'clone', 'farm', 'rest', 'wander'];
 const NI = BRAIN_IN.length, NH = 8, NO = BRAIN_OUT.length;
 const W1_LEN = NI * NH;                       // input -> hidden (the 'bias' input acts as hidden bias)

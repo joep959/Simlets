@@ -168,7 +168,9 @@ function think(s, sim) {
     x[6] = clamp(preyScore, 0, 1); x[7] = prey ? 1 - preyD / range : 0; x[8] = prey ? clamp(prey.mass / s.mass / 3, 0, 1) : 0;
     x[9] = foodWorth; x[10] = food ? 1 - foodD / range : 0;
     x[11] = World.darkness(tick); x[12] = World.season(tick); x[13] = Math.min(1, kinCount / 5);
-    x[14] = ready ? 1 : 0; x[15] = s.age / s.maxAge; x[16] = 1;
+    x[14] = ready ? 1 : 0; x[15] = s.age / s.maxAge;
+    x[16] = here === TERRAIN.FOREST ? 1 : 0; x[17] = World.wet(s.x, s.y) ? 1 : 0;   // where it's standing
+    x[18] = World.freshSoil((s.y | 0) * WORLD_W + (s.x | 0)) ? 1 : 0; x[19] = 1;
     runBrain(s.brain, x, out);
     const avail = { flee: !!(threat || (s.alertTimer > 0 && s.alert)), hunt: !!prey, eat: !!food, recall: !!mem,
                     breed: !!(seekMate && mate), clone: cloneNow, farm: canFarm, rest: true, wander: true };

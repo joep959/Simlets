@@ -149,11 +149,11 @@ NEAT-style clustering:
 ## 9d. Hybrid brain (`brain.js`)
 
 - **Switch:** left panel, **Brain: rules | Hybrid** (global `Brain.mode`, default Hybrid).
-- **Second chromosome:** every simlet carries a brain, a 17-input → 8-hidden (tanh) → 9-output network, 225 weights. In Hybrid mode its outputs are **added to the rule scores** of the actions that are currently possible; impossible actions are set to −∞. The highest final score still wins.
+- **Second chromosome:** every simlet carries a brain, a 20-input → 8-hidden (tanh) → 9-output network, 249 weights. In Hybrid mode its outputs are **added to the rule scores** of the actions that are currently possible; impossible actions are set to −∞. The highest final score still wins.
 - **Starts neutral:** founder brains have random input→hidden weights but **zero hidden→output weights**, so a new brain changes nothing. Tribe members share their founder's brain.
 - **Evolution:** brains mutate only while Hybrid is on (rate = `mutationRate`, σ = `brainMutSize`, unclamped). In Rules mode they are copied unchanged, so they don't drift.
   - **Crossover by whole hidden neuron:** each neuron's input and output weights come from one parent. This avoids splicing two unrelated feature detectors together (the "competing conventions" problem).
-- **Inputs:** energy, hunger, stamina, exhausted, threat score, threat nearness, prey score, prey nearness, prey size, food worth, food nearness, night, bust, kin nearby, ready to breed, age, bias.
+- **Inputs (20):** energy, hunger, stamina, exhausted, threat score, threat nearness, prey score, prey nearness, prey size, food worth, food nearness, night, bust, kin nearby, ready to breed, age, in forest, on open water, on fresh farmable soil, bias.
 - **Outputs:** corrections for flee, hunt, eat, recall, breed, clone, farm, rest, wander.
 - **Species similarity ignores brains** (trait genes only).
 - **Inspector:** rules / brain / final score per action, plus an input→action "wiring" heat-map (W1·W2, linearised).
