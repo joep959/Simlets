@@ -124,6 +124,14 @@ const Render = {
       }
     }
 
+    // ruins: rubble that fades over 8000 ticks
+    for (const [ti, t] of Shelters.ruins) {
+      const [px, py] = this.toScreen(ti % WORLD_W, (ti / WORLD_W) | 0);
+      if (px < -z || py < -z || px > this.w || py > this.h) continue;
+      ctx.fillStyle = `rgba(120,115,108,${(0.8 * (1 - (tick - t) / 8000)).toFixed(2)})`;
+      for (const [fx, fy] of [[0.2, 0.25], [0.6, 0.2], [0.35, 0.6], [0.7, 0.65]]) ctx.fillRect(px + z * fx, py + z * fy, Math.max(1, z * 0.18), Math.max(1, z * 0.14));
+    }
+
     // night shading: light, and applied to the land only, so food and simlets stay at full brightness
     const dk = World.darkness(tick);
     if (dk > 0 && !editMode) { ctx.fillStyle = `rgba(20,30,70,${(0.25 * dk).toFixed(3)})`; ctx.fillRect(0, 0, this.w, this.h); }
@@ -154,6 +162,29 @@ const Render = {
       }
     });
 
+    // shelters: foundations show build progress; finished huts darken with size, with store bar and occupant pips
+    for (const sh of Shelters.tiles.values()) {
+      const [px, py] = this.toScreen(sh.ti % WORLD_W, (sh.ti / WORLD_W) | 0);
+      if (px < -z || py < -z || px > this.w || py > this.h) continue;
+      const m = z * 0.08, w = z - 2 * m;
+      if (!sh.done) {
+        ctx.strokeStyle = 'rgba(110,75,40,0.9)'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+        ctx.strokeRect(px + m, py + m, w, w); ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(150,105,60,0.55)'; ctx.fillRect(px + m, py + m + w * (1 - sh.progress), w, w * sh.progress);
+        continue;
+      }
+      ctx.globalAlpha = 0.5 + 0.5 * sh.health;
+      // house: pale walls, terracotta roof, dark outline (distinct from brown farmland)
+      ctx.fillStyle = '#e9dcc3'; ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 1;
+      ctx.fillRect(px + m, py + z * 0.45, w, z * 0.55 - m); ctx.strokeRect(px + m, py + z * 0.45, w, z * 0.55 - m);
+      ctx.fillStyle = '#c0533a';
+      ctx.beginPath(); ctx.moveTo(px + m * 0.5, py + z * 0.5); ctx.lineTo(px + z / 2, py + m); ctx.lineTo(px + z - m * 0.5, py + z * 0.5); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      if (sh.store > 0) { ctx.fillStyle = '#f2a51a'; ctx.fillRect(px + m, py + z - m - Math.max(1.5, z * 0.12), w * sh.store / STORE_CAP, Math.max(1.5, z * 0.12)); }
+      for (let k = 0; k < sh.occ; k++) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px + z * (0.35 + 0.3 * k), py + z * 0.62, Math.max(1, z * 0.07), 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+
     // selected simlet's vision cone (under everything else)
     if (selected && !selected.dead) {
       const s = selected, [sx, sy] = this.toScreen(s.x, s.y), R = s.range * z;
@@ -166,6 +197,7 @@ const Render = {
     // simlets
     for (const s of Sim.simlets) {
       if (!vis(s.x, s.y, 3)) continue;
+      if (s.inShelter && s !== selected) continue;      // indoors: shown as a pip on the shelter instead
       const [sx, sy] = this.toScreen(s.x, s.y);
       const r = Math.max(3, s.radius * z), h = s.heading;
       const d = s.g[G.diet], cls = d < 0.33 ? 0 : d > 0.66 ? 2 : 1;

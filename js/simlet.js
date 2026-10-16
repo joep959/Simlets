@@ -27,7 +27,8 @@ class Simlet {
     this.alert = null; this.alertTimer = 0;
     this.memory = [];
     this.field = null;
-    this.brain = null;     // neural-network weights (second chromosome), see brain.js     // home field {x, y, t}: set by farming, pulls the simlet back home
+    this.brain = null;
+    this.inShelter = null; this.working = false;   // shelter tile it is inside; mid build-session     // neural-network weights (second chromosome), see brain.js     // home field {x, y, t}: set by farming, pulls the simlet back home
     this.camoEff = 0;
     this.range = this.visionRange;
   }
@@ -85,7 +86,7 @@ function think(s, sim) {
   let threat = null, threatScore = 0, prey = null, preyScore = 0, mate = null, mateD = 1e9;
   let kinX = 0, kinY = 0, sepX = 0, sepY = 0, donateTo = null, kinCount = 0, threatD = 0, preyD = 0;
   sim.querySimlets(s.x, s.y, range, o => {
-    if (o === s || o.dead) return;
+    if (o === s || o.dead || o.inShelter) return;      // simlets inside shelters can't be seen or attacked
     const dx = o.x - s.x, dy = o.y - s.y, d2 = dx * dx + dy * dy;
     if (d2 > range * range) return;
     const d = Math.sqrt(d2) || 0.001;
@@ -156,6 +157,11 @@ function think(s, sim) {
   // hard limits = physically possible; judgements (hungry? danger?) are soft penalties the brain can learn to overrule
   const canFarm = farmable && s.energy >= P.farmCost * 1.5;
   const danger = 1 / (1 + 4 * threatScore);       // ~1 with harmless strangers about, small with a real threat close
+  // shelters: family home with room, family store with food, and a place to build
+  const home = Shelters.nearestKin(s, sh => sh.done && (sh.occ < SHELTER_CAP || s.inShelter === sh));
+  const store = Shelters.nearestKin(s, sh => sh.done && sh.store > 1);
+  const site = g[G.building] > 0.02 ? Shelters.findSite(s) : null;
+  const canBuild = !!site && s.energy >= Shelters.sessionCost(site.ti) * 1.2;
   const sc = {
     flee:   threat ? threatScore * 1.6 : 0,
     hunt:   prey ? preyScore * (s.attackCd ? 0.6 : 1) : 0,
@@ -167,6 +173,9 @@ function think(s, sim) {
     rest:   g[G.rest] * (night ? 1.2 : 0.5) * (food || threat ? 0.3 : 1),
     wander: 0.1 + g[G.wander] * 0.4 + (seekMate && !mate ? 0.3 : 0),
     track:  smelt > 0 && !prey ? 1.5 * smelt * s.meatEff * drive * (0.5 + g[G.smell]) : 0,   // hungry meat-eaters follow trails
+    build:  canBuild ? g[G.building] * 0.9 * (ef > 0.5 ? 1 : 0.15) * danger : 0,
+    shelter: home ? (0.25 + 0.5 * g[G.rest]) * (night ? 1.6 : 0.6) * (World.season(tick) ? 1.5 : 1) * (threat ? 2 : 1) * (food ? 0.5 : 1) : 0,
+    draw:   store ? drive * 1.1 * s.plantEff : 0,                   // eat from the family granary (crops are plants)
   };
   if (s.alertTimer > 0 && s.alert) sc.flee = Math.max(sc.flee, g[G.flee] * 0.8);
   // hybrid brain: the network adds a learned correction to each available action's score
@@ -179,10 +188,12 @@ function think(s, sim) {
     x[11] = World.darkness(tick); x[12] = World.season(tick); x[13] = Math.min(1, kinCount / 5);
     x[14] = ready ? 1 : 0; x[15] = s.age / s.maxAge;
     x[16] = here === TERRAIN.FOREST ? 1 : 0; x[17] = World.wet(s.x, s.y) ? 1 : 0;   // where it's standing
-    x[18] = World.freshSoil((s.y | 0) * WORLD_W + (s.x | 0)) ? 1 : 0; x[19] = smelt; x[20] = 1;
+    x[18] = World.freshSoil((s.y | 0) * WORLD_W + (s.x | 0)) ? 1 : 0; x[19] = smelt;
+    x[20] = home ? 1 - home.d / SHELTER_R : 0; x[21] = store ? Math.min(1, store.sh.store / STORE_CAP) : 0; x[22] = site ? 1 : 0; x[23] = 1;
     runBrain(s.brain, x, out);
     const avail = { flee: !!(threat || (s.alertTimer > 0 && s.alert)), hunt: !!prey, eat: !!food, recall: !!mem,
-                    breed: !!(seekMate && mate), clone: cloneNow, farm: canFarm, rest: true, wander: true, track: smelt > 0 };
+                    breed: !!(seekMate && mate), clone: cloneNow, farm: canFarm, rest: true, wander: true, track: smelt > 0,
+                    build: canBuild, shelter: !!home, draw: !!store };
     s.baseScores = { ...sc };
     let corr = 0;
     BRAIN_OUT.forEach((k, o) => {
@@ -201,6 +212,8 @@ function think(s, sim) {
     best = sowSpot ? 'sow' : 'wander';
   }
   s.scores = sc;
+  if (best !== 'shelter') s.inShelter = null;     // anything else means stepping outside
+  s.working = false;
 
   // --- side actions ---
   if (best === 'flee' && threat && s.alarmCd === 0 && Math.random() < g[G.alarm] * 0.5) raiseAlarm(s, threat, sim);
@@ -239,6 +252,18 @@ function think(s, sim) {
     case 'sow':    toward(sowSpot.x, sowSpot.y); speed = ms * 0.6; s.target = sowSpot; break;
     case 'rest':   break;
     case 'track':  vx = Math.cos(scentDir); vy = Math.sin(scentDir); speed = ms * 0.8; break;
+    case 'build': {
+      if ((s.y | 0) * WORLD_W + (s.x | 0) === site.ti) { s.working = Shelters.work(s, site, tick); if (!s.working) best = 'rest'; }
+      else { toward(site.x, site.y); speed = ms * 0.7; s.target = site; }
+      break;
+    }
+    case 'shelter': {
+      const sh = home.sh;
+      if (s.inShelter === sh || Math.hypot(sh.x - s.x, sh.y - s.y) < 0.7) { s.inShelter = sh; s.x = sh.x; s.y = sh.y; }
+      else { toward(sh.x, sh.y); speed = ms * 0.8; s.target = sh; }
+      break;
+    }
+    case 'draw':   toward(store.sh.x, store.sh.y); speed = ms * 0.75; s.target = store.sh; break;
     case 'wander': {
       const a = s.heading + gauss() * 0.25;          // small wobble on current heading = smooth exploring
       vx = Math.cos(a); vy = Math.sin(a);
@@ -301,8 +326,9 @@ function act(s, sim) {
   const ref = v / 0.1;
   s.energy -= P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1);
   // winter cold: extra idle drain in bust, mostly escaped under forest cover
-  const cold = World.season(sim.tick) === 1 ? P.winterCold * (here === TERRAIN.FOREST ? 1 - P.forestShelter : 1) : 0;
-  s.energy -= P.idleCost * s.drainMult * (1 + cold) * (s.action === 'rest' || s.action === 'farm' ? 0.4 : 1);
+  const inside = !!s.inShelter;
+  const cold = inside ? 0 : World.season(sim.tick) === 1 ? P.winterCold * (here === TERRAIN.FOREST ? 1 - P.forestShelter : 1) : 0;
+  s.energy -= P.idleCost * s.drainMult * (1 + cold) * (inside ? 0.25 : s.action === 'rest' || s.action === 'farm' || s.working ? 0.4 : 1);
 
   // camouflage: breaks with movement, forest boosts it, big bodies show, alarm callers are fully visible
   let c = s.g[G.camo] * 0.85 * (1 - 0.4 * s.g[G.size]);
@@ -319,7 +345,7 @@ function act(s, sim) {
       if (Math.hypot(t.x - s.x, t.y - s.y) < s.radius + 0.5) { s.moveSpeed = 0; bite(s, t); }
       break;
     case 'hunt':
-      if (!t || t.dead) { s.needThink = true; break; }
+      if (!t || t.dead || t.inShelter) { s.needThink = true; break; }   // prey dead or hidden indoors
       // a sprinting predator can pounce from further away
       if (Math.hypot(t.x - s.x, t.y - s.y) < s.radius + t.radius + (s.sprinting ? 1.2 : 0.3) && s.attackCd === 0) attack(s, t, sim);
       break;
@@ -329,6 +355,17 @@ function act(s, sim) {
       break;
     case 'sow':
       if (!t || Math.hypot(t.x - s.x, t.y - s.y) < 0.6) s.needThink = true;   // arrived on fresh soil: decide again (farm)
+      break;
+    case 'build': case 'shelter':
+      if (t && Math.hypot(t.x - s.x, t.y - s.y) < 0.6) s.needThink = true;    // arrived: start work / go inside
+      break;
+    case 'draw':
+      if (!t || !Shelters.tiles.has(t.ti) || t.store <= 0.01 || s.energy >= s.maxEnergy * 0.95) { s.needThink = true; break; }
+      if (Math.hypot(t.x - s.x, t.y - s.y) < 1.2) {
+        s.moveSpeed = 0;
+        const amt = Math.min(t.store, 2);
+        t.store -= amt; s.energy = Math.min(s.maxEnergy, s.energy + amt * s.plantEff);
+      }
       break;
     case 'recall':
       if (Math.hypot(t.x - s.x, t.y - s.y) < 1.5) {

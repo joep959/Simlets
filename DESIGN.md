@@ -194,6 +194,30 @@ NEAT-style clustering:
 - **Map:** "Scent: on" in the legend shows trails in purple.
 - **First test:** tracking happens, and plant-eater sightings rose on 1 of 3 maps (0.3% → 8.8% of carnivore decisions), but carnivores still died out in all 6 runs. One natural run went extinct; 3 reruns of that map were healthy, so that was chance.
 
+## 9g. Shelters (`shelter.js`, branch `shelters`)
+
+- **Building gene** (Social). The **Build** action (score 0.9·building·(0.15 if energy ≤ 50%)·danger) goes to a site and does 40-tick work sessions.
+  - Each session costs buildCost/4 energy (default 40 per tile), or ×0.6 in or next to forest (timber). Four sessions finish a tile.
+  - Work on a finished tile repairs it.
+- **Site choice ("join before you start"):** first a family foundation or damaged shelter within 10 tiles; then a free tile next to a family shelter (growth); then the current tile, but only if the family has no shelter within 10 tiles. Family = genome similarity ≥ 0.6 to the shelter's founder.
+- **Inside (Shelter action):** 2 per tile, idle drain ×0.25, no winter cold, invisible to others (can't be seen, hunted or attacked).
+- **Granary:** every 25 ticks, ripe crops within 3 tiles are pulled into the tile's store (cap 80); stored food never rots. The **Draw** action eats from a family store (2 per tick × plant digestion).
+- **Decay:** an unworked foundation crumbles over 2,000 ticks. A finished tile loses health over `shelterLife` (20,000) unused, ×0.1 while occupied. On collapse it becomes a fertile ruin, drawn as rubble.
+- **Deforestation:** a tile finished in forest is cleared to grassland; a ruin becomes fertile.
+- **Brain:** new inputs shelterNear, storeFull, buildSite; new outputs build, shelter, draw (24 → 8 → 13).
+- **First test (3 maps, 18k ticks, vs main):**
+
+  | | Map 1 | Map 2 | Map 3 |
+  |---|---|---|---|
+  | Foundations started → finished | 410 → 54 | 911 → 337 | 394 → 55 |
+  | Largest villages (tiles) | 2 | **17–19** (several) | 6 |
+  | Food eaten from stores | 325 | 2,765 | 404 |
+  | Time indoors (boom / bust) | 3% / 9% | 6% / 13% | 4% / 8% |
+  | Forest tiles cleared | 10 | 87 | 15 |
+  | Lowest bust population vs main | 73 vs 80 | 248 vs 263 | 87 vs 209 |
+
+  - Joe predicted it: **most foundations are abandoned** (63–87%), because wanderers start new ones far from family. Survival is no better (sometimes worse): energy is wasted on abandoned foundations.
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.

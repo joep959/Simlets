@@ -128,7 +128,7 @@ const World = {
     for (const [list, k] of [[this.fertileTiles, 1], [this.grassTiles, 0.5]])
       for (let i = 0; i < list.length; i++) { const ti = list[i]; if (this.soil[ti] < 1) this.setSoil(ti, this.soil[ti] + step * k); }
   },
-  freshSoil(ti) { const t = this.terrain[ti]; return (t === TERRAIN.FERTILE || t === TERRAIN.GRASS) && this.soil[ti] >= SOIL_MIN; },
+  freshSoil(ti) { const t = this.terrain[ti]; return (t === TERRAIN.FERTILE || t === TERRAIN.GRASS) && this.soil[ti] >= SOIL_MIN && !Shelters.tiles.has(ti); },
 
   paint(cx, cy, radius, type) {
     const r2 = radius * radius;

@@ -2,7 +2,7 @@
 // Save / load the whole world (map, soil, scent, food, simlets with genes + brains, species, history, settings)
 // as one JSON file, so long experiments survive a page reload and can be branched.
 
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 const r4 = v => Math.round(v * 1e4) / 1e4;                  // trim floats so the file stays a sensible size
 const packF = arr => Array.from(arr, r4);
 
@@ -14,7 +14,7 @@ const Save = {
       age: s.age, energy: r4(s.energy), stam: r4(s.stam), exhausted: s.exhausted,
       children: s.children, kills: s.kills, farmed: s.farmed, donated: s.donated,
       attackCd: s.attackCd, breedCd: s.breedCd, alarmCd: s.alarmCd, breedMode: s.breedMode, readySince: s.readySince,
-      memory: s.memory, field: s.field, species: s.species ? s.species.id : null,
+      memory: s.memory, field: s.field, species: s.species ? s.species.id : null, inShelter: s.inShelter ? s.inShelter.ti : null, built: s.built || 0,
     }));
     const foods = [];
     Food.forEach(f => foods.push([r4(f.x), r4(f.y), r4(f.e), r4(f.e0 || 0), f.born, f.ready, f.type]));
@@ -37,6 +37,10 @@ const Save = {
                                                       count: sp.count, peak: sp.peak, slot: sp.slot, dietMean: sp.dietMean })),
         meta: [...Species.meta.values()].filter(sp => !Species.live.has(sp.id)).map(sp => ({ id: sp.id, slot: sp.slot, parent: sp.parent, born: sp.born })),
       },
+      shelters: { started: Shelters.started, finished: Shelters.finished, crumbled: Shelters.crumbled, collapsed: Shelters.collapsed,
+        ruins: [...Shelters.ruins],
+        tiles: [...Shelters.tiles.values()].map(sh => ({ ti: sh.ti, owner: packF(sh.owner), progress: sh.progress, done: sh.done,
+                 health: r4(sh.health), store: r4(sh.store), lastWork: sh.lastWork, lastUsed: sh.lastUsed })) },
       food: foods, simlets,
     };
   },
@@ -63,6 +67,10 @@ const Save = {
       const x = { ...sp, rep: Float32Array.from(sp.rep), pick: null };
       Species.live.set(x.id, x); Species.meta.set(x.id, x);
     }
+    // shelters
+    Object.assign(Shelters, { started: o.shelters.started, finished: o.shelters.finished, crumbled: o.shelters.crumbled, collapsed: o.shelters.collapsed });
+    Shelters.ruins = new Map(o.shelters.ruins);
+    for (const t of o.shelters.tiles) Shelters.tiles.set(t.ti, { ...t, owner: Float32Array.from(t.owner), x: t.ti % WORLD_W + 0.5, y: ((t.ti / WORLD_W) | 0) + 0.5, occ: 0 });
     // food
     for (const [x, y, e, e0, born, ready, type] of o.food) Food.add({ x, y, e, e0, born, ready, type });
     // simlets: rebuild through the constructor (re-derives body stats), then restore their state
@@ -73,7 +81,8 @@ const Save = {
         stam: d.stam, exhausted: d.exhausted, children: d.children, kills: d.kills, farmed: d.farmed, donated: d.donated,
         attackCd: d.attackCd, breedCd: d.breedCd, alarmCd: d.alarmCd, breedMode: d.breedMode, readySince: d.readySince,
         memory: d.memory || [], field: d.field, brain: d.brain ? Float32Array.from(d.brain) : newBrain(),
-        species: Species.live.get(d.species) || null, needThink: true,
+        species: Species.live.get(d.species) || null, needThink: true, built: d.built || 0,
+        inShelter: d.inShelter != null ? Shelters.tiles.get(d.inShelter) || null : null,
       });
       if (!s.species) Species.assign(s, Sim.tick);
       Sim.simlets.push(s);

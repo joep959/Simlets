@@ -210,7 +210,7 @@ const UI = {
       ['Population', Sim.simlets.length], ['Herbivores', h], ['Omnivores', o], ['Carnivores', c],
       ['Food items', Food.count], ['Births', Sim.births], ['↳ sexual / asexual', `${Sim.birthsSex.toLocaleString()} / ${Sim.birthsAsex.toLocaleString()}`], ['Starved', Sim.deaths.starved],
       ['Killed', Sim.deaths.killed], ['Old age', Sim.deaths.old], ['Alarms raised', Sim.alarms],
-      ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Species alive', Species.shown().length], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
+      ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Shelters built / building', `${[...Shelters.tiles.values()].filter(s => s.done).length} / ${[...Shelters.tiles.values()].filter(s => !s.done).length}`], ['Food in shelters', Math.round([...Shelters.tiles.values()].reduce((a, s) => a + s.store, 0))], ['Species alive', Species.shown().length], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
     ];
     $('stats').innerHTML = rows.map(([k, v]) => `<span>${k}</span><b>${v.toLocaleString()}</b>`).join('');
     $('extinct').classList.toggle('hidden', Sim.simlets.length > 0 || Sim.tick === 0 || this.mode === 'edit');
@@ -335,6 +335,7 @@ const UI = {
       <div class="meter"><div id="iStamBar" style="background:var(--warn)"></div></div>
       ${row('Age', '', 'Age in ticks / maximum age (set by the Lifespan gene). Reaching the maximum = death of old age.', 'iAge')}
       <div class="meter"><div id="iAgeBar" style="background:var(--ink-3)"></div></div>
+      ${row('Shelter', '', 'Inside a family shelter, or the nearest family shelter with its food store.', 'iShelter')}
       ${row('Children', '', 'Offspring born so far (as either parent).', 'iChildren')}
       ${row('Kills', '', 'Successful attacks. The victim becomes a corpse that meat-eaters can eat.', 'iKills')}
       ${row('Farmed', '', 'Times it spent energy planting food.', 'iFarmed')}
@@ -406,6 +407,8 @@ const UI = {
         el.classList.toggle('bwin', k === s.action);
       }
     }
+    { const h = s.inShelter ? { sh: s.inShelter, d: 0 } : Shelters.nearestKin(s, sh => sh.done);
+      $('iShelter').textContent = s.inShelter ? `inside · store ${Math.round(s.inShelter.store)}` : h ? `${h.d.toFixed(0)} tiles away · store ${Math.round(h.sh.store)}` : 'none nearby'; }
     $('iChildren').textContent = s.children; $('iKills').textContent = s.kills;
     $('iFarmed').textContent = s.farmed; $('iDonated').textContent = s.donated;
   },
@@ -420,6 +423,7 @@ const BRAIN_INPUT_TIPS = {
   food: 'Value of the best visible food (net energy)', foodNear: 'How close that food is (1 = right here)',
   night: 'Darkness (0 noon, 1 midnight)', bust: 'Bust season (1 = bust, 0 = boom)', kin: 'Relatives nearby (1 = five or more)',
   ready: 'Ready to breed (1 = yes)', age: 'Age as a fraction of its maximum lifespan',
+  shelterNear: 'A family shelter with room is nearby (1 = right here)', storeFull: 'How full the nearest family food store is', buildSite: 'There is somewhere to build or repair nearby (1 = yes)',
   scent: 'Strength of plant-eater scent it can smell ahead (0 = nothing, or too faint for its nose)',
   inForest: 'Standing in forest (1 = yes): cover, shelter from winter cold, shorter sight',
   onWater: 'Standing in open water (1 = yes; ice does not count)',
@@ -428,7 +432,7 @@ const BRAIN_INPUT_TIPS = {
 };
 const BRAIN_ACTION_NAMES = {
   flee: 'Flee', hunt: 'Hunt', eat: 'Eat', recall: 'Go to remembered food', breed: 'Seek a mate',
-  clone: 'Clone (asexual breeding)', farm: 'Farm', rest: 'Rest', wander: 'Wander', track: 'Track a scent trail',
+  clone: 'Clone (asexual breeding)', farm: 'Farm', rest: 'Rest', wander: 'Wander', track: 'Track a scent trail', build: 'Build / repair shelter', shelter: 'Go inside shelter', draw: 'Eat from family store',
 };
 
 // What the simlet is currently doing (the action that scored highest at its last decision)
@@ -440,6 +444,9 @@ const ACTION_TIPS = {
   flee: 'Running from a threat it can see, or one a relative warned it about.',
   breed: 'Approaching a compatible mate.',
   sow: 'Walking to fresh soil to plant: the ground here is exhausted.',
+  build: 'Building or repairing a family shelter (paying energy, 40 ticks per work session).',
+  shelter: 'Inside (or heading to) a family shelter: very low energy drain, no winter cold, hidden from predators.',
+  draw: 'Eating from the family food store in a shelter.',
   track: 'Following a plant-eater scent trail towards where the herd went.',
   clone: 'Reproducing asexually: budding off mutated copies of itself.',
   farm: 'Planting food: spent energy, now waiting while it grows.',

@@ -44,6 +44,8 @@ const GENES = [
     tip: 'Chance, when fleeing, to warn relatives within 12 tiles. Costs energy and drops its own camouflage to zero for a while, so the caller often becomes the target.' },
   { key: 'farming', group: 'Social', label: 'Farming',
     tip: 'Tendency to spend energy planting food on fertile land or grassland (better yield on fertile). The crop takes 300 ticks to grow, keeps longer than wild food, and anyone can eat it. Farmers remember their field and drift back to it (stronger with this gene); children inherit the family field.' },
+  { key: 'building', group: 'Social', label: 'Building',
+    tip: 'Tendency to build and extend family shelters (paid in energy and time). Relatives join an unfinished or growable shelter before starting a new one. Inside a shelter: very low energy drain, no winter cold, hidden from predators; it also stores nearby crops.' },
   { key: 'breedThreshold', group: 'Breeding', label: 'Breed thresh.',
     tip: 'Energy level (35% to 95%) it must reach before seeking a mate. High = breeds less often but gives each litter more energy.' },
   { key: 'broodSize', group: 'Breeding', label: 'Brood size',

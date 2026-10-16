@@ -21,6 +21,7 @@ const Sim = {
     World.resetSoil();
     World.ice.fill(0); World.iceTiles = [];
     World.scent.fill(0);
+    Shelters.reset();
     this.grid = Array.from({ length: this.gw * this.gh }, () => []);
     Food.reset();
   },
@@ -104,12 +105,14 @@ const Sim = {
     this.spawnOn(World.forestTiles, P.forestSpawn / 1000);          // forest: low but steady, unaffected by bust
     if (this.tick % 25 === 0) { this.rotFood(); World.recoverSoil(25); World.fadeScent(25); }
     if (this.tick % 100 === 0) World.updateIce(this.tick);
+    if (this.tick % 25 === 0) Shelters.update(this.tick);
     if (P.immigration > 0 && this.tick - this.lastImmigration >= P.immigration) {   // trickle of newcomers
       this.lastImmigration = this.tick;
       const [cx, cy] = this.randomLand();
       this.dropTribe(cx, cy, 'immigrant');
     }
     this.buildGrid();
+    Shelters.countOccupants(this.simlets);
 
     const list = this.simlets;
     for (let i = 0; i < list.length; i++) {
@@ -125,7 +128,7 @@ const Sim = {
       if (s.needThink || --s.thinkTimer <= 0) {
         s.needThink = false;
         think(s, this);
-        s.thinkTimer = s.action === 'farm' ? 60 : s.action === 'rest' ? 15 : THINK_INTERVAL;
+        s.thinkTimer = s.action === 'farm' ? 60 : s.action === 'rest' || s.inShelter ? 15 : s.working ? BUILD_SESSION : THINK_INTERVAL;
       }
       act(s, this);
       if (s.energy <= 0) this.kill(s, 'starved');
@@ -151,7 +154,7 @@ const Sim = {
     let n = Math.floor(exp); if (Math.random() < exp - n) n++;
     for (let k = 0; k < n; k++) {
       const ti = tiles[(Math.random() * tiles.length) | 0];
-      if (Food.tileCount[ti] >= P.tileCap || World.soil[ti] < SOIL_MIN) continue;   // dormant soil grows nothing
+      if (Food.tileCount[ti] >= P.tileCap || World.soil[ti] < SOIL_MIN || Shelters.tiles.has(ti)) continue;   // dormant soil / shelters grow nothing
       Food.add({ x: ti % WORLD_W + Math.random(), y: ((ti / WORLD_W) | 0) + Math.random(),
                  e: P.plantEnergy, born: this.tick, ready: this.tick, type: 0 });
     }
