@@ -30,6 +30,8 @@ const GENES = [
     tip: 'Tendency to stop and save energy (idle drain drops to 40%). Stronger at night and when nothing is in view. Resting keeps camouflage intact.' },
   { key: 'hunger', group: 'Feeding', label: 'Hunger thresh.',
     tip: 'Energy level (25% to 90%) below which finding food becomes urgent. Above it, food is only eaten when nothing else matters more.' },
+  { key: 'thrift', group: 'Feeding', label: 'Thrift',
+    tip: 'How strongly it saves the family food store for later. Thrifty simlets eat wild food first and only draw on the store when there is none about or they are close to starving. 0 = eats from the store whenever hungry.' },
   { key: 'scavenge', group: 'Feeding', label: 'Scavenge',
     tip: 'Preference for corpses over other food. Makes carrion more attractive; it does not change how well meat is digested.' },
   { key: 'flee', group: 'Social', label: 'Flee',

@@ -28,7 +28,8 @@ class Simlet {
     this.memory = [];
     this.field = null;
     this.brain = null;
-    this.inShelter = null; this.working = false;   // shelter tile it is inside; mid build-session     // neural-network weights (second chromosome), see brain.js     // home field {x, y, t}: set by farming, pulls the simlet back home
+    this.inShelter = null; this.working = false;   // shelter tile it is inside; mid build-session
+    this.home = null; this.project = null;          // remembered shelter tile indices     // neural-network weights (second chromosome), see brain.js     // home field {x, y, t}: set by farming, pulls the simlet back home
     this.camoEff = 0;
     this.range = this.visionRange;
   }
@@ -158,8 +159,10 @@ function think(s, sim) {
   const canFarm = farmable && s.energy >= P.farmCost * 1.5;
   const danger = 1 / (1 + 4 * threatScore);       // ~1 with harmless strangers about, small with a real threat close
   // shelters: family home with room, family store with food, and a place to build
-  const home = Shelters.nearestKin(s, sh => sh.done && (sh.occ < SHELTER_CAP || s.inShelter === sh));
-  const store = Shelters.nearestKin(s, sh => sh.done && sh.store > 1);
+  const hasRoom = sh => sh.done && (sh.occ < SHELTER_CAP || s.inShelter === sh);
+  const home = Shelters.remembered(s, 'home', hasRoom) || Shelters.nearestKin(s, hasRoom);
+  if (home && s.home == null) s.home = home.sh.ti;  // adopt a family shelter as home
+  const store = Shelters.remembered(s, 'home', sh => sh.done && sh.store > 1) || Shelters.nearestKin(s, sh => sh.done && sh.store > 1);
   const site = g[G.building] > 0.02 ? Shelters.findSite(s) : null;
   const canBuild = !!site && s.energy >= Shelters.sessionCost(site.ti) * 1.2;
   const sc = {
@@ -173,9 +176,10 @@ function think(s, sim) {
     rest:   g[G.rest] * (night ? 1.2 : 0.5) * (food || threat ? 0.3 : 1),
     wander: 0.1 + g[G.wander] * 0.4 + (seekMate && !mate ? 0.3 : 0),
     track:  smelt > 0 && !prey ? 1.5 * smelt * s.meatEff * drive * (0.5 + g[G.smell]) : 0,   // hungry meat-eaters follow trails
-    build:  canBuild ? g[G.building] * 0.9 * (ef > 0.5 ? 1 : 0.15) * danger : 0,
-    shelter: home ? (0.25 + 0.5 * g[G.rest]) * (night ? 1.6 : 0.6) * (World.season(tick) ? 1.5 : 1) * (threat ? 2 : 1) * (food ? 0.5 : 1) : 0,
-    draw:   store ? drive * 1.1 * s.plantEff : 0,                   // eat from the family granary (crops are plants)
+    build:  canBuild ? g[G.building] * 0.9 * (ef > 0.5 ? 1 : 0.15) * danger / (1 + (site.d || 0) / 30) : 0,
+    shelter: home ? (0.25 + 0.5 * g[G.rest]) * (night ? 1.6 : 0.6) * (World.season(tick) ? 1.5 : 1) * (threat ? 2 : 1) * (food ? 0.5 : 1) / (1 + home.d / 20) : 0,
+    // eat from the family granary (crops are plants); thrifty simlets save it unless there's no wild food or they're starving
+    draw:   store ? drive * 1.1 * s.plantEff * (ef < 0.2 ? 1 : 1 - g[G.thrift] * (food ? 1 : 0.6)) : 0,
   };
   if (s.alertTimer > 0 && s.alert) sc.flee = Math.max(sc.flee, g[G.flee] * 0.8);
   // hybrid brain: the network adds a learned correction to each available action's score
@@ -189,7 +193,10 @@ function think(s, sim) {
     x[14] = ready ? 1 : 0; x[15] = s.age / s.maxAge;
     x[16] = here === TERRAIN.FOREST ? 1 : 0; x[17] = World.wet(s.x, s.y) ? 1 : 0;   // where it's standing
     x[18] = World.freshSoil((s.y | 0) * WORLD_W + (s.x | 0)) ? 1 : 0; x[19] = smelt;
-    x[20] = home ? 1 - home.d / SHELTER_R : 0; x[21] = store ? Math.min(1, store.sh.store / STORE_CAP) : 0; x[22] = site ? 1 : 0; x[23] = 1;
+    x[20] = home ? Math.max(0, 1 - home.d / SHELTER_R) : 0; x[21] = store ? Math.min(1, store.sh.store / STORE_CAP) : 0; x[22] = site ? 1 : 0;
+    { const bust = World.season(tick) === 1, left = 1 - World.seasonProgress(tick);
+      x[23] = bust ? 0 : left; x[24] = bust ? left : 0; }                         // how much boom / bust is left
+    x[25] = 1;
     runBrain(s.brain, x, out);
     const avail = { flee: !!(threat || (s.alertTimer > 0 && s.alert)), hunt: !!prey, eat: !!food, recall: !!mem,
                     breed: !!(seekMate && mate), clone: cloneNow, farm: canFarm, rest: true, wander: true, track: smelt > 0,
@@ -405,7 +412,17 @@ function doFarm(s, sim) {
   if (!mult || s.energy < P.farmCost * 1.5 || World.soil[hereTi] < SOIL_MIN) return false;
   s.energy -= P.farmCost;
   // yield = land type × remaining nutrients; farming then exhausts the soil it uses
-  const total = P.farmCost * mult * World.soil[hereTi], n = Math.max(1, Math.round(total / P.plantEnergy));
+  // neighbouring active fields (+12.5% each, up to +50%) and a finished house within 2 tiles (+25%) raise the yield
+  const hx = s.x | 0, hy = s.y | 0;
+  let nearFields = 0, nearHouse = false;
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    const nx = hx + dx, ny = hy + dy; if (nx < 0 || ny < 0 || nx >= WORLD_W || ny >= WORLD_H) continue;
+    const ni = ny * WORLD_W + nx;
+    if (Math.abs(dx) + Math.abs(dy) === 1) { const t = World.tilled.get(ni); if (t !== undefined && sim.tick - t < 2000) nearFields++; }
+    const sh = Shelters.tiles.get(ni); if (sh && sh.done) nearHouse = true;
+  }
+  const bonus = (1 + 0.125 * Math.min(4, nearFields)) * (nearHouse ? 1.25 : 1);
+  const total = P.farmCost * mult * World.soil[hereTi] * bonus, n = Math.max(1, Math.round(total / P.plantEnergy));
   World.setSoil(hereTi, 0);
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 2 * Math.PI, r = 0.5 + Math.random() * 1.5;

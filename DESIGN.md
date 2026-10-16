@@ -218,6 +218,25 @@ NEAT-style clustering:
 
   - Joe predicted it: **most foundations are abandoned** (63–87%), because wanderers start new ones far from family. Survival is no better (sometimes worse): energy is wasted on abandoned foundations.
 
+## 9h. Stockpiling package (branch `shelters`)
+
+- **Home memory:** simlets remember their home shelter and current building project (tile indices) and return from anywhere. Children inherit the family home. Shelter and build scores fall off with distance.
+- **Shared walls:** a tile next to a finished shelter is 40% cheaper (stacks with the forest discount).
+- **Asymmetric year:** `bustShare` (default **0.67**) = fraction of each 2 × seasonLength year that is bust.
+- **Thrift gene** (Feeding): the Draw score is × (1 − thrift) if wild food is visible, × (1 − 0.6·thrift) if not, and unpenalised below 20% energy.
+- **Brain inputs** `timeToBust` and `timeToBoom` (fraction of the current season left), so the network is 26 → 8 → 13. Stores are 200 per tile.
+- **Field bonuses:** +12.5% yield per neighbouring active field (max +50%), +25% with a finished house within 2 tiles.
+- **Test (3 maps, 24k ticks):**
+
+  | | Lowest bust population | Store total (early boom → late boom → late bust) | Houses finished |
+  |---|---|---|---|
+  | main (no shelters, 50/50 year) | 88 / 203 / 56 | – | – |
+  | Shelters, 50/50 year | 264 / 185 / 185 | builds in boom, **barely drains in bust** | 28–46% |
+  | Shelters, 67% bust | 366 / 300 / 262 | e.g. 198 → 257 → 216 (one map drains) | 12–26% |
+
+  - Survival is now better than main on 2 of 3 maps, and better still with the long winter.
+  - But simlets **hoard**: stores fill and are rarely eaten, and thrift evolved to 0.33–0.92. Indoor time is still only 3–12% in bust.
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.

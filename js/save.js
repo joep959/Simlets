@@ -2,7 +2,7 @@
 // Save / load the whole world (map, soil, scent, food, simlets with genes + brains, species, history, settings)
 // as one JSON file, so long experiments survive a page reload and can be branched.
 
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 const r4 = v => Math.round(v * 1e4) / 1e4;                  // trim floats so the file stays a sensible size
 const packF = arr => Array.from(arr, r4);
 
@@ -14,7 +14,7 @@ const Save = {
       age: s.age, energy: r4(s.energy), stam: r4(s.stam), exhausted: s.exhausted,
       children: s.children, kills: s.kills, farmed: s.farmed, donated: s.donated,
       attackCd: s.attackCd, breedCd: s.breedCd, alarmCd: s.alarmCd, breedMode: s.breedMode, readySince: s.readySince,
-      memory: s.memory, field: s.field, species: s.species ? s.species.id : null, inShelter: s.inShelter ? s.inShelter.ti : null, built: s.built || 0,
+      memory: s.memory, field: s.field, species: s.species ? s.species.id : null, inShelter: s.inShelter ? s.inShelter.ti : null, built: s.built || 0, home: s.home, project: s.project,
     }));
     const foods = [];
     Food.forEach(f => foods.push([r4(f.x), r4(f.y), r4(f.e), r4(f.e0 || 0), f.born, f.ready, f.type]));
@@ -81,7 +81,7 @@ const Save = {
         stam: d.stam, exhausted: d.exhausted, children: d.children, kills: d.kills, farmed: d.farmed, donated: d.donated,
         attackCd: d.attackCd, breedCd: d.breedCd, alarmCd: d.alarmCd, breedMode: d.breedMode, readySince: d.readySince,
         memory: d.memory || [], field: d.field, brain: d.brain ? Float32Array.from(d.brain) : newBrain(),
-        species: Species.live.get(d.species) || null, needThink: true, built: d.built || 0,
+        species: Species.live.get(d.species) || null, needThink: true, built: d.built || 0, home: d.home ?? null, project: d.project ?? null,
         inShelter: d.inShelter != null ? Shelters.tiles.get(d.inShelter) || null : null,
       });
       if (!s.species) Species.assign(s, Sim.tick);

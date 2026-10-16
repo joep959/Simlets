@@ -6,7 +6,7 @@
 // and finally collapse into fertile ruins. Building in forest clears the trees, so villages cause deforestation.
 
 const SHELTER_CAP = 2;        // occupants per shelter tile
-const STORE_CAP = 80;         // stored crop energy per shelter tile
+const STORE_CAP = 200;        // stored crop energy per shelter tile
 const KIN_SIM = 0.6;          // genome similarity to the founder needed to use or work on a shelter
 const SHELTER_R = 12;         // how far a simlet will look for its family's shelters (tiles)
 const BUILD_SESSION = 40;     // ticks per work session
@@ -39,6 +39,8 @@ const Shelters = {
   // Where should s work? 1) a family foundation or damaged shelter nearby, 2) extend a family shelter,
   // 3) start a new one where it stands, but only if the family has no shelter close by (join before you start)
   findSite(s) {
+    const proj = this.remembered(s, 'project', sh => !sh.done || sh.health < 0.8);
+    if (proj) return { ti: proj.sh.ti, x: proj.sh.x, y: proj.sh.y, d: proj.d };
     const fix = this.nearestKin(s, sh => !sh.done || sh.health < 0.8, NEW_SITE_GAP);
     if (fix) return { ti: fix.sh.ti, x: fix.sh.x, y: fix.sh.y };
     const fam = this.nearestKin(s, sh => sh.done, NEW_SITE_GAP);
@@ -56,14 +58,27 @@ const Shelters = {
     return this.buildable(here) ? { ti: here, x: (s.x | 0) + 0.5, y: (s.y | 0) + 0.5 } : null;
   },
 
-  // timber: building in or next to forest is cheaper
+  // cheaper with timber (in or next to forest) and with shared walls (next to a finished shelter): both stack
   costFactor(ti) {
     const tx = ti % WORLD_W, ty = (ti / WORLD_W) | 0;
+    let forest = false, wall = false;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
       const nx = tx + dx, ny = ty + dy;
-      if (nx >= 0 && ny >= 0 && nx < WORLD_W && ny < WORLD_H && World.terrain[ny * WORLD_W + nx] === TERRAIN.FOREST) return 0.6;
+      if (nx < 0 || ny < 0 || nx >= WORLD_W || ny >= WORLD_H) continue;
+      const ni = ny * WORLD_W + nx;
+      if (World.terrain[ni] === TERRAIN.FOREST) forest = true;
+      if ((dx === 0) !== (dy === 0)) { const n = this.tiles.get(ni); if (n && n.done) wall = true; }
     }
-    return 1;
+    return (forest ? 0.6 : 1) * (wall ? 0.6 : 1);
+  },
+
+  // Memory: a simlet remembers its home shelter and its building project (tile indices), so it can return from
+  // anywhere instead of only sensing shelters within SHELTER_R. Forgotten if the tile is gone or not family.
+  remembered(s, key, pred) {
+    const ti = s[key]; if (ti == null) return null;
+    const sh = this.tiles.get(ti);
+    if (!sh || !this.isKin(s, sh)) { s[key] = null; return null; }
+    return pred(sh) ? { sh, d: Math.hypot(sh.x - s.x, sh.y - s.y) } : null;
   },
   sessionCost(ti) { return P.buildCost / 4 * this.costFactor(ti); },
 
@@ -78,11 +93,12 @@ const Shelters = {
              health: 1, store: 0, occ: 0, lastWork: tick, lastUsed: tick };
       this.tiles.set(site.ti, sh); this.started++;
     }
-    s.energy -= cost; sh.lastWork = tick; s.built = (s.built || 0) + 1;
+    s.energy -= cost; sh.lastWork = tick; s.built = (s.built || 0) + 1; s.project = sh.ti;
     if (!sh.done) {
       sh.progress += 0.25;
       if (sh.progress >= 0.999) {
         sh.done = true; sh.progress = 1; sh.health = 1; this.finished++;
+        s.project = null; s.home = sh.ti;              // finished: this is now home
         if (World.terrain[sh.ti] === TERRAIN.FOREST) { World.terrain[sh.ti] = TERRAIN.GRASS; World.rebuildLists(); }  // trees felled
       }
     } else sh.health = Math.min(1, sh.health + 0.25);

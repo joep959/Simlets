@@ -205,6 +205,7 @@ const Sim = {
       c.energy = Math.min(left, c.maxEnergy);
       c.species = a.species; Species.assign(c, this.tick);
       if (a.field) c.field = { ...a.field };
+      c.home = a.home;                                        // born into the family home
       const cb = b ? crossBrains(a.brain, b.brain) : new Float32Array(a.brain);
       c.brain = Brain.mode === 'hybrid' ? mutateBrain(cb, P.mutationRate, P.brainMutSize) : cb;   // brains only evolve while in use                   // children grow up knowing the family field       // usually the parent's species; a misfit founds a new one
       this.newborns.push(c); born++;

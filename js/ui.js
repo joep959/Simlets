@@ -423,6 +423,8 @@ const BRAIN_INPUT_TIPS = {
   food: 'Value of the best visible food (net energy)', foodNear: 'How close that food is (1 = right here)',
   night: 'Darkness (0 noon, 1 midnight)', bust: 'Bust season (1 = bust, 0 = boom)', kin: 'Relatives nearby (1 = five or more)',
   ready: 'Ready to breed (1 = yes)', age: 'Age as a fraction of its maximum lifespan',
+  timeToBust: 'In boom: how much of the boom is left (1 = just started, 0 = bust is coming). 0 during bust',
+  timeToBoom: 'In bust: how much of the bust is left (1 = just started, 0 = boom is coming). 0 during boom',
   shelterNear: 'A family shelter with room is nearby (1 = right here)', storeFull: 'How full the nearest family food store is', buildSite: 'There is somewhere to build or repair nearby (1 = yes)',
   scent: 'Strength of plant-eater scent it can smell ahead (0 = nothing, or too faint for its nose)',
   inForest: 'Standing in forest (1 = yes): cover, shelter from winter cold, shorter sight',

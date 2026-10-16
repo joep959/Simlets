@@ -169,8 +169,12 @@ const World = {
   },
 
   // ---- time ----
-  season(tick) { return Math.floor(tick / P.seasonLength) % 2; },            // 0 boom, 1 bust
-  seasonProgress(tick) { return (tick % P.seasonLength) / P.seasonLength; },
+  // A year = 2 × seasonLength ticks; bustShare of it is bust. 0 = boom, 1 = bust.
+  season(tick) { const y = 2 * P.seasonLength; return (tick % y) < y * (1 - P.bustShare) ? 0 : 1; },
+  seasonProgress(tick) {                                                     // 0..1 through the current season
+    const y = 2 * P.seasonLength, boom = y * (1 - P.bustShare), ph = tick % y;
+    return ph < boom ? ph / boom : (ph - boom) / (y - boom);
+  },
   darkness(tick) {                                                           // 0 noon .. 1 midnight
     const t = (tick % P.dayLength) / P.dayLength;
     return clamp(-Math.cos(2 * Math.PI * t) * 1.5 + 0.25, 0, 1);
