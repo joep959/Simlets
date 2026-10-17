@@ -92,6 +92,7 @@ Every gene has a cost or a trade-off. Hover a gene in the inspector for the spec
 | `js/species.js` | Species clustering (NEAT-style) |
 | `js/world.js` | Terrain, map generation, save/load, food storage, seasons, day/night |
 | `js/simlet.js` | A simlet's body, and its sense → decide → act behaviour |
+| `js/shelter.js` | Shelters: building, granary stores, decay into ruins |
 | `js/sim.js` | The tick loop, seeding, air-drops/immigration, breeding, stats history |
 | `js/save.js` | Save and load whole worlds (JSON) |
 | `js/render.js`, `js/charts.js`, `js/ui.js`, `js/main.js` | Drawing, charts, panels and controls, main loop |

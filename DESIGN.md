@@ -194,7 +194,7 @@ NEAT-style clustering:
 - **Map:** "Scent: on" in the legend shows trails in purple.
 - **First test:** tracking happens, and plant-eater sightings rose on 1 of 3 maps (0.3% → 8.8% of carnivore decisions), but carnivores still died out in all 6 runs. One natural run went extinct; 3 reruns of that map were healthy, so that was chance.
 
-## 9g. Shelters (`shelter.js`, branch `shelters`)
+## 9g. Shelters (`shelter.js`)
 
 - **Building gene** (Social). The **Build** action (score 0.9·building·(0.15 if energy ≤ 50%)·danger) goes to a site and does 40-tick work sessions.
   - Each session costs buildCost/4 energy (default 40 per tile), or ×0.6 in or next to forest (timber). Four sessions finish a tile.
@@ -218,7 +218,7 @@ NEAT-style clustering:
 
   - Joe predicted it: **most foundations are abandoned** (63–87%), because wanderers start new ones far from family. Survival is no better (sometimes worse): energy is wasted on abandoned foundations.
 
-## 9h. Stockpiling package (branch `shelters`)
+## 9h. Stockpiling package
 
 - **Home memory:** simlets remember their home shelter and current building project (tile indices) and return from anywhere. Children inherit the family home. Shelter and build scores fall off with distance.
 - **Shared walls:** a tile next to a finished shelter is 40% cheaper (stacks with the forest discount).
