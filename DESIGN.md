@@ -308,3 +308,4 @@ NEAT-style clustering:
   - **Brain rework:** more raw senses (counts of food, kin and threats by direction), more weight to the brain over the rules, and memory (a recurrent brain).
   - **Build what?:** a two-level decision (build → which structure), plus more structures.
   - **Random events:** plague, drought, fire, flood, bounty.
+  - **Meta-optimisation:** an outer optimiser (GA, CMA-ES or Bayesian optimisation) tunes world parameters using headless runs, scored on carnivores persisting alongside herbivores. Do it after the land rework, which resets the balance anyway.
