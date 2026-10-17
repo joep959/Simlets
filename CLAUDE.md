@@ -33,7 +33,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 - **Headless balance runs:** `node tools/headless.js 20000 "{\"param\":value}" 2000`. Runs the real sim files in Node. Use several seeds (maps are random); run them in parallel in the background since each takes about 1–5 minutes.
 - **Browser checks:** headless Edge (`msedge --headless=new --screenshot` / `--dump-dom`) with a scratch copy of index.html that:
-  - adds `<base href="file:///C:/Users/jpalmer/Documents/Simulation/">`
+  - adds `<base href="file:///<repo folder>/">` (Joe works on more than one machine, so use this clone's actual path)
   - replaces `requestAnimationFrame` with `setTimeout`
   - reports results via `document.title`
 - **Gotchas:**
