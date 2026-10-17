@@ -30,7 +30,7 @@ const World = {
       else if (this.terrain[i] === TERRAIN.FOREST) this.forestTiles.push(i);
     }
     this.computeShoreDistance();
-    this.ice.fill(0); this.iceTiles = [];
+    this.updateIce(typeof Sim !== 'undefined' ? Sim.tick : 0);   // recompute, don't clear: shelters change terrain mid-winter
     this.dirty = true;
   },
 
