@@ -234,9 +234,14 @@ const Sim = {
     const sd = Array.from(sq, (v, i) => Math.sqrt(Math.max(0, v / n - mean[i] * mean[i])));
     h.t.push(this.tick); h.pop.push(L.length); h.herb.push(herb); h.omni.push(omni); h.carn.push(carn);
     h.food.push(Food.count); h.mean.push(mean); h.sd.push(sd); h.species.push(Species.snapshot());
-    if (h.t.length > 600) {                               // keep memory bounded: halve resolution
-      for (const k of ['t', 'pop', 'herb', 'omni', 'carn', 'food', 'mean', 'sd', 'species']) h[k] = h[k].filter((_, i) => i % 2 === 0);
-      h.interval *= 2;
+    const keys = ['t', 'pop', 'herb', 'omni', 'carn', 'food', 'mean', 'sd', 'species'];
+    if (P.chartWindow > 0) {                              // recent history only: drop samples older than the window
+      let k = 0; while (k < h.t.length && h.t[k] <= this.tick - P.chartWindow) k++;
+      if (k) for (const key of keys) h[key].splice(0, k);
     }
+    if (h.t.length > 600) {                               // keep memory bounded: halve resolution
+      for (const key of keys) h[key] = h[key].filter((_, i) => i % 2 === 0);
+      h.interval *= 2;
+    } else if (P.chartWindow > 0 && h.interval > 50 && P.chartWindow / (h.interval / 2) <= 600) h.interval /= 2;   // window shrank: sample finer again
   },
 };

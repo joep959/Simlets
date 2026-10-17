@@ -211,23 +211,34 @@ const Render = {
         ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - Math.cos(h) * r * 3.5, sy - Math.sin(h) * r * 3.5); ctx.stroke();
       }
       ctx.globalAlpha = alpha;
-      // body shape by diet class, pointing along heading:
+      // body shape by diet class, drawn in local coordinates (x = heading), stretched by the speed gene:
       // herbivore = round teardrop, omnivore = diamond, carnivore = sharp notched arrowhead
-      const pt = (ang, k) => [sx + Math.cos(h + ang) * r * k, sy + Math.sin(h + ang) * r * k];
-      ctx.fillStyle = col; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 1;
-      ctx.beginPath();
-      if (cls === 0) {
-        const tip = 1.5, a = Math.acos(1 / tip);
-        ctx.moveTo(...pt(0, tip));
-        ctx.arc(sx, sy, r, h + a, h - a + 2 * Math.PI);
-      } else if (cls === 1) {
-        ctx.moveTo(...pt(0, 1.7)); ctx.lineTo(...pt(Math.PI / 2, 1.05));
-        ctx.lineTo(...pt(Math.PI, 1.0)); ctx.lineTo(...pt(-Math.PI / 2, 1.05));
-      } else {
-        ctx.moveTo(...pt(0, 2.1)); ctx.lineTo(...pt(2.45, 1.4));
-        ctx.lineTo(...pt(Math.PI, 0.45)); ctx.lineTo(...pt(-2.45, 1.4));
+      const lk = s.look;
+      const pt = (ang, k) => ctx.lineTo(Math.cos(ang) * r * k, Math.sin(ang) * r * k);
+      const body = () => {
+        ctx.beginPath();
+        if (cls === 0) {
+          const tip = 1.5, a = Math.acos(1 / tip);
+          ctx.moveTo(r * tip, 0); ctx.arc(0, 0, r, a, 2 * Math.PI - a);
+        } else if (cls === 1) {
+          pt(0, 1.7); pt(Math.PI / 2, 1.05); pt(Math.PI, 1.0); pt(-Math.PI / 2, 1.05);
+        } else {
+          pt(0, 2.1); pt(2.45, 1.4); pt(Math.PI, 0.45); pt(-2.45, 1.4);
+        }
+        ctx.closePath();
+      };
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(h); ctx.scale(lk.len, lk.wid);
+      body(); ctx.fillStyle = col; ctx.fill();
+      if (r >= 4.5 && lk.pattern !== 'plain') {             // markings, only when zoomed in enough to read them
+        ctx.save(); ctx.clip(); ctx.fillStyle = lk.mark; ctx.beginPath();
+        if (lk.pattern === 'spots') for (const [px, py] of [[-0.35, -0.45], [0.35, 0.3], [-0.6, 0.35]]) { ctx.moveTo(px * r + 0.24 * r, py * r); ctx.arc(px * r, py * r, 0.24 * r, 0, 7); }
+        else if (lk.pattern === 'stripes') for (const px of [-0.55, 0.05, 0.65]) ctx.rect(px * r, -2 * r, 0.22 * r, 4 * r);
+        else if (lk.pattern === 'mask') ctx.rect(0.55 * r, -2 * r, 2 * r, 4 * r);
+        else ctx.rect(-2 * r, -0.16 * r, 4.5 * r, 0.32 * r);   // spine: a stripe down the back
+        ctx.fill(); ctx.restore();
       }
-      ctx.closePath(); ctx.fill(); ctx.stroke();
+      body(); ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = lk.edge; ctx.stroke();
+      ctx.restore();
       ctx.globalAlpha = 1;
       if (role) {                                           // relative / species-mate ring
         ctx.strokeStyle = HIGHLIGHT_COLORS[role]; ctx.lineWidth = role === 'species' ? 1.5 : 2.5;

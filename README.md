@@ -1,6 +1,6 @@
 # Simlets
 
-An evolving ecosystem you can watch in the browser. Simlets are small creatures with a 25-gene chromosome. They eat, hunt, flee, farm, share and breed on a map you paint yourself. Nobody scores them: the ones that survive long enough to breed pass their genes on, and the world decides what "fit" means.
+An evolving ecosystem you can watch in the browser. Simlets are small creatures with a 27-gene chromosome. They eat, hunt, flee, farm, share and breed on a map you paint yourself. Nobody scores them: the ones that survive long enough to breed pass their genes on, and the world decides what "fit" means.
 
 It's a play and learning project about genetic algorithms, agent-based simulation and evolution.
 
@@ -22,11 +22,12 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 | **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Save world… / Load world…** (the whole world as a file, so experiments survive reloads), **Restore default settings**, and all world sliders (hover a slider for what it does) |
 | **Map** | Scroll to zoom, drag to pan, click a simlet to select it. The map key is collapsed under **Key ▸**. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
 | **Right panel** | Nothing selected: the **species list**. Simlet selected: **Highlight Family / Species** (gold parents, teal children, white siblings, lilac species-mates; click an ID to jump to it), vitals, body stats, brain and all genes |
-| **Bottom charts** | Population by diet · Species over time · Mean of any gene ± spread · Diet histogram |
+| **Bottom charts** | Population by diet · Species over time · Mean of any gene ± spread · Diet histogram. They show the last 30,000 ticks by default (**Display → Chart history**; 0 = the whole run) |
 
 **Reading a simlet on the map**
 - Shape shows diet: green round teardrop = herbivore, blue diamond = omnivore, orange arrowhead = carnivore.
 - Faded = camouflaged. Dim = resting. Trail = sprinting. White ring = alarm call.
+- Zoom in to see **markings**: plain, spots, stripes, mask or a spine stripe, in a dark shade of the lineage colour. They come from the genome, so families share them. Long, slim body = fast; thick outline = aggressive.
 
 **Map editing:** **Clear**, **Random** and **Load…** start a fresh world (no simlets, tick 0); press **Run** to drop tribes in. Painting on its own doesn't reset anything. **Save…** downloads your map as JSON.
 
@@ -87,7 +88,7 @@ Every gene has a cost or a trade-off. Hover a gene in the inspector for the spec
 | `index.html`, `css/style.css` | Page layout and styling |
 | `js/config.js` | World constants and every slider (with its hover text) |
 | `js/brain.js` | The hybrid neural brain (network, mutation, crossover, inspector heat-map data) |
-| `js/genome.js` | The 25 genes, mutation, crossover, similarity, colour |
+| `js/genome.js` | The 27 genes, mutation, crossover, similarity, colour |
 | `js/species.js` | Species clustering (NEAT-style) |
 | `js/world.js` | Terrain, map generation, save/load, food storage, seasons, day/night |
 | `js/simlet.js` | A simlet's body, and its sense → decide → act behaviour |

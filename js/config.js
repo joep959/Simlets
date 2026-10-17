@@ -68,6 +68,7 @@ const PARAM_DEFS = [
   ['Population', 'founderEnergy',    'Founder starting energy',         0.2,  1,    0.05,  0.7],
   ['Population', 'leanPredators',    'Lean predator founders',          0,    1,    0.05,  0],
   ['Population', 'maxPop',           'Population cap',                  100,  3000, 50,    1500],
+  ['Display',    'chartWindow',      'Chart history (ticks, 0 = all)',  0,    100000, 1000, 30000],
 ];
 
 // Hover explanations for the sliders
@@ -114,6 +115,7 @@ const PARAM_TIPS = {
   founderEnergy: 'Energy the starting tribes (and air-drops and immigrants) arrive with, as a fraction of their maximum.',
   leanPredators: 'When a starting tribe (or newcomer) happens to be meat-eating, pull its upkeep genes (size, lifespan, stamina, memory, smell) this far toward moderate values. 0 = fully random founders; 1 = all set to moderate. Gives predators a body they can afford to feed; evolution takes over from there.',
   maxPop: 'Hard population cap: at the cap, breeding is blocked. Keeps the browser responsive.',
+  chartWindow: 'How far back the charts look. The default 30,000 ticks is 5 years at the default season length. 0 = keep the whole run (older history is stored at a coarser resolution as the run grows). Lowering it discards older history for good.',
 };
 
 const P = {};

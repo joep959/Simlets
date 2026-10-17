@@ -1,5 +1,5 @@
 'use strict';
-// The chromosome: 22 genes, each stored 0..1 and scaled to a real quantity in simlet.js.
+// The chromosome: 27 genes, each stored 0..1 and scaled to a real quantity in simlet.js.
 
 const GENES = [
   { key: 'size', group: 'Body', label: 'Size',
@@ -96,9 +96,30 @@ const COLOR_AXES = (() => {
   for (let i = 0; i < NG; i++) { a.push(rnd()); b.push(rnd()); }
   return [a, b];
 })();
-function genomeColor(g) {
+function genomeHue(g, axes) {
   let x = 0, y = 0;
-  for (let i = 0; i < NG; i++) { const v = g[i] - 0.5; x += v * COLOR_AXES[0][i]; y += v * COLOR_AXES[1][i]; }
-  const hue = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-  return `hsl(${hue.toFixed(0)},70%,62%)`;
+  for (let i = 0; i < NG; i++) { const v = g[i] - 0.5; x += v * axes[0][i]; y += v * axes[1][i]; }
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+function genomeColor(g) { return `hsl(${genomeHue(g, COLOR_AXES).toFixed(0)},70%,62%)`; }
+
+// Looks (display only): markings and body proportions from the genome, so relatives look alike and a lineage
+// changes pattern only when it drifts a long way. Pattern = a sector of a second fixed projection; marking colour
+// = a dark shade of the lineage hue; body stretched by speed (fast = long and slim); outline weight from aggression.
+const PATTERNS = ['plain', 'spots', 'stripes', 'mask', 'spine'];
+const PATTERN_AXES = (() => {
+  let seed = 54321;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  const a = [], b = [];
+  for (let i = 0; i < NG; i++) { a.push(rnd()); b.push(rnd()); }
+  return [a, b];
+})();
+function genomeLook(g) {
+  const len = 0.85 + 0.4 * g[G.speed];
+  return {
+    pattern: PATTERNS[Math.floor(genomeHue(g, PATTERN_AXES) / 360 * PATTERNS.length)],
+    mark: `hsl(${genomeHue(g, COLOR_AXES).toFixed(0)},55%,24%)`,
+    len, wid: 1 / Math.sqrt(len),
+    edge: 0.6 + 1.6 * g[G.aggression],
+  };
 }

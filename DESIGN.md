@@ -247,6 +247,14 @@ NEAT-style clustering:
     - Stores: map 2 at ×1 gave the best pattern seen (535 → 1,020 → 545 through the year); ×2 drained on maps 2 and 3, and map 1 hoarded.
     - The effect is smaller than the map-to-map noise. **Kept at ×2 (Joe's choice)** for storage pressure.
 
+## 9i. Display: chart history and looks
+
+- **Chart history:** a sample every `interval` ticks (starts at 50), capped at 600 samples by halving the resolution. With `chartWindow` > 0 (default 30,000), samples older than the window are dropped, and the interval returns to the finest one that fits 600 samples. Charts plot against tick, not sample index, so mixed spacing draws correctly.
+- **Looks (`genomeLook`, display only):**
+  - Pattern: plain / spots / stripes / mask / spine, from the angle of a second fixed genome projection (like lineage colour), so relatives share a pattern.
+  - Marking colour: the lineage hue at 24% lightness. Drawn only when the body is at least 4.5 px across.
+  - Body length × (0.85 + 0.4·speed) and width × 1/√length; outline width 0.6 + 1.6·aggression.
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.
@@ -295,3 +303,8 @@ NEAT-style clustering:
 - Disturbances (droughts, fires).
 - Mountains (block line of sight).
 - Pure neural brain (no rule scores), or adding more brain inputs (e.g. scent, memory of prey).
+- **Joe's docket (Oct 2026):**
+  - **Land rework:** paint only land and water. Fertility, grassland and forest are derived from continuous per-tile fields (moisture from water, soil nutrients, tree cover that spreads to neighbours) and change with simlet use, so you can see migration and de/reforestation.
+  - **Brain rework:** more raw senses (counts of food, kin and threats by direction), more weight to the brain over the rules, and memory (a recurrent brain).
+  - **Build what?:** a two-level decision (build → which structure), plus more structures.
+  - **Random events:** plague, drought, fire, flood, bounty.

@@ -47,14 +47,17 @@ const Charts = {
     }
   },
 
+  // x position of tick t: charts are plotted against time, since sample spacing can change (history window, halving)
+  X(ch, t) { const [t0, t1] = this.span; return PAD.l + (ch.w - PAD.l - PAD.r) * (t - t0) / (t1 - t0); },
+
   line(ch, xs, ys, ymax, color) {
-    const { ctx, w, h } = ch, n = xs.length;
+    const { ctx, h } = ch, n = xs.length;
     if (n < 2) return;
-    const pw = w - PAD.l - PAD.r, ph = h - PAD.t - PAD.b;
+    const ph = h - PAD.t - PAD.b;
     ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
-      const x = PAD.l + pw * i / (n - 1), y = PAD.t + ph * (1 - ys[i] / ymax);
+      const x = this.X(ch, xs[i]), y = PAD.t + ph * (1 - ys[i] / ymax);
       i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     }
     ctx.stroke();
@@ -67,13 +70,14 @@ const Charts = {
     ctx.textAlign = 'right'; ctx.fillText(`t ${t[t.length - 1] ?? 0}`, w - PAD.r, h - 3);
   },
 
-  hoverIndex(ch, n) {
-    if (!this.hover || this.hover.key !== ch.key || n < 2) return -1;
-    const pw = ch.w - PAD.l - PAD.r;
-    return clamp(Math.round((this.hover.x - PAD.l) / pw * (n - 1)), 0, n - 1);
+  hoverIndex(ch, t) {                                     // index of the sample nearest the mouse, by time
+    if (!this.hover || this.hover.key !== ch.key || t.length < 2) return -1;
+    let best = 0;
+    for (let i = 1; i < t.length; i++) if (Math.abs(this.X(ch, t[i]) - this.hover.x) < Math.abs(this.X(ch, t[best]) - this.hover.x)) best = i;
+    return best;
   },
-  crosshair(ch, i, n) {
-    const x = PAD.l + (ch.w - PAD.l - PAD.r) * i / (n - 1);
+  crosshair(ch, t) {
+    const x = this.X(ch, t);
     ch.ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ch.ctx.lineWidth = 1;
     ch.ctx.beginPath(); ch.ctx.moveTo(x + 0.5, PAD.t); ch.ctx.lineTo(x + 0.5, ch.h - PAD.b); ch.ctx.stroke();
   },
@@ -86,6 +90,7 @@ const Charts = {
   draw() {
     const H = Sim.history; if (!H) return;
     let tipShown = false;
+    const t0 = H.t[0] ?? 0; this.span = [t0, Math.max(t0 + 1, H.t[H.t.length - 1] ?? 0)];
 
     // Population
     {
@@ -97,9 +102,9 @@ const Charts = {
       this.line(ch, H.t, H.omni, ymax, COL.omni);
       this.line(ch, H.t, H.carn, ymax, COL.carn);
       this.xLabels(ch, H.t);
-      const i = this.hoverIndex(ch, H.t.length);
+      const i = this.hoverIndex(ch, H.t);
       if (i >= 0) {
-        this.crosshair(ch, i, H.t.length);
+        this.crosshair(ch, H.t[i]);
         this.showTip(`<span class="k">tick</span> ${H.t[i]}<br>Total <b>${H.pop[i]}</b><br>Herbivore <b>${H.herb[i]}</b><br>Omnivore <b>${H.omni[i]}</b><br>Carnivore <b>${H.carn[i]}</b><br><span class="k">food items</span> ${H.food[i]}`);
         tipShown = true;
       }
@@ -126,8 +131,8 @@ const Charts = {
       const ymax = Math.max(10, ...total) * 1.1;
       this.frame(ch, ymax, v => Math.round(v));
       if (n >= 2) {
-        const { ctx, w, h } = ch, pw = w - PAD.l - PAD.r, ph = h - PAD.t - PAD.b;
-        const X = i => PAD.l + pw * i / (n - 1), Y = v => PAD.t + ph * (1 - v / ymax);
+        const { ctx, h } = ch, ph = h - PAD.t - PAD.b;
+        const X = i => this.X(ch, H.t[i]), Y = v => PAD.t + ph * (1 - v / ymax);
         const base = new Float64Array(n);
         const bands = rows.map((r, k) => [r, SPECIES_COLORS[Species.meta.get(order[k]).slot]]);
         bands.push([other, OTHER_COLOR]);
@@ -146,9 +151,9 @@ const Charts = {
         .map(sp => `<span><i class="sw" style="background:${SPECIES_COLORS[sp.slot]};width:9px;height:9px"></i>S${sp.id}</span>`).join('')
         + `<span><i class="sw" style="background:${OTHER_COLOR};width:9px;height:9px"></i>Other</span>`;
       if (leg !== this._spLeg) { document.getElementById('spLegend').innerHTML = leg; this._spLeg = leg; }
-      const i = this.hoverIndex(ch, n);
+      const i = this.hoverIndex(ch, H.t);
       if (i >= 0) {
-        this.crosshair(ch, i, n);
+        this.crosshair(ch, H.t[i]);
         const top = [...S[i]].sort((a, b) => b[1] - a[1]).slice(0, 6);
         this.showTip(`<span class="k">tick</span> ${H.t[i]} · <b>${S[i].length}</b> species<br>` +
           top.map(([id, c]) => `S${id} <b>${c}</b>`).join('<br>') + (S[i].length > 6 ? '<br><span class="k">…</span>' : ''));
@@ -162,18 +167,18 @@ const Charts = {
       const gi = this.geneIdx, n = H.t.length;
       this.frame(ch, 1, v => v.toFixed(1));
       if (n >= 2) {
-        const { ctx, w, h } = ch, pw = w - PAD.l - PAD.r, ph = h - PAD.t - PAD.b;
+        const { ctx, h } = ch, ph = h - PAD.t - PAD.b;
         ctx.fillStyle = 'rgba(57,135,229,0.22)';
         ctx.beginPath();
-        for (let i = 0; i < n; i++) ctx.lineTo(PAD.l + pw * i / (n - 1), PAD.t + ph * (1 - clamp(H.mean[i][gi] + H.sd[i][gi], 0, 1)));
-        for (let i = n - 1; i >= 0; i--) ctx.lineTo(PAD.l + pw * i / (n - 1), PAD.t + ph * (1 - clamp(H.mean[i][gi] - H.sd[i][gi], 0, 1)));
+        for (let i = 0; i < n; i++) ctx.lineTo(this.X(ch, H.t[i]), PAD.t + ph * (1 - clamp(H.mean[i][gi] + H.sd[i][gi], 0, 1)));
+        for (let i = n - 1; i >= 0; i--) ctx.lineTo(this.X(ch, H.t[i]), PAD.t + ph * (1 - clamp(H.mean[i][gi] - H.sd[i][gi], 0, 1)));
         ctx.closePath(); ctx.fill();
         this.line(ch, H.t, H.mean.map(m => m[gi]), 1, COL.accent);
       }
       this.xLabels(ch, H.t);
-      const i = this.hoverIndex(ch, n);
+      const i = this.hoverIndex(ch, H.t);
       if (i >= 0) {
-        this.crosshair(ch, i, n);
+        this.crosshair(ch, H.t[i]);
         this.showTip(`<span class="k">tick</span> ${H.t[i]}<br>${GENES[gi].label}: mean <b>${H.mean[i][gi].toFixed(2)}</b> ± ${H.sd[i][gi].toFixed(2)}`);
         tipShown = true;
       }

@@ -13,7 +13,7 @@ class Simlet {
     this.gen = gen; this.parents = parents; this.origin = 'born'; this.species = null;
     this.children = 0; this.kills = 0; this.farmed = 0; this.donated = 0;
     this.age = 0; this.dead = false; this.cause = '';
-    this.color = genomeColor(genome);
+    this.color = genomeColor(genome); this.look = genomeLook(genome);
     this.derive();
     this.energy = Math.min(energy, this.maxEnergy);
     this.stam = this.staminaMax; this.exhausted = false;
