@@ -17,10 +17,8 @@ const Sim = {
     this.arrivals = 0; this.lastImmigration = 0; this.dropFx = []; this.birthsSex = 0; this.birthsAsex = 0; this.brainCorr = 0; this.brainThinks = 0; this.brainInfluence = 0;
     this.history = { interval: 50, t: [], pop: [], herb: [], omni: [], carn: [], food: [], mean: [], sd: [], species: [] };
     Species.reset();
-    World.tilled.clear();                     // soil and trees are part of the living map: a restart keeps them
-    World.ice.fill(0); World.iceTiles = [];
-    World.scent.fill(0);
-    Shelters.reset();
+    for (const sys of Systems) if (sys.reset) sys.reset();   // tilled marks, scent, ice, shelters, events...
+    // (soil and trees are part of the living map: a restart keeps them)
     this.grid = Array.from({ length: this.gw * this.gh }, () => []);
     Food.reset();
   },
@@ -104,14 +102,14 @@ const Sim = {
       const info = TERRAIN_INFO[t];
       this.spawnOn(World.typeTiles[t], P[info.spawnKey] / 1000 * (info.bustHit ? mult : 1));   // forest: steady all year
     }
-    if (this.tick % 25 === 0) { this.rotFood(); World.recoverSoil(25); World.fadeScent(25); }
-    if (this.tick % 100 === 0) { World.updateLand(100); World.updateIce(this.tick); }
-    if (this.tick % 25 === 0) Shelters.update(this.tick);
+    if (this.tick % 25 === 0) this.rotFood();
+    runSystems('pre', this.tick);                 // soil recovery, scent fade, land, ice, shelters (registerSystem)
     if (P.immigration > 0 && this.tick - this.lastImmigration >= P.immigration) {   // trickle of newcomers
       this.lastImmigration = this.tick;
       const [cx, cy] = this.randomLand();
       this.dropTribe(cx, cy, 'immigrant');
     }
+    runSystems('post', this.tick);                // events
     this.buildGrid();
     Shelters.countOccupants(this.simlets);
 

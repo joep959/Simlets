@@ -141,3 +141,4 @@ const Shelters = {
     if (terrainChanged) World.refreshLand();
   },
 };
+registerSystem({ name: 'shelters', every: 25, update(tick) { Shelters.update(tick); }, reset() { Shelters.reset(); } });

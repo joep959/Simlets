@@ -322,6 +322,12 @@ const World = {
   isNight(tick) { return this.darkness(tick) > 0.5; },
 };
 
+// World upkeep, run from Sim.step (see registerSystem in config.js). Order matters: soil, scent, land, ice.
+registerSystem({ name: 'soil',  every: 25,  update() { World.recoverSoil(25); }, reset() { World.tilled.clear(); } });
+registerSystem({ name: 'scent', every: 25,  update() { World.fadeScent(25); },   reset() { World.scent.fill(0); } });
+registerSystem({ name: 'land',  every: 100, update() { World.updateLand(100); } });
+registerSystem({ name: 'ice',   every: 100, update(tick) { World.updateIce(tick); }, reset() { World.ice.fill(0); World.iceTiles = []; } });
+
 // ---- Food store: spatial buckets so "what food is near me" is fast ----
 // Food item: { x, y, e, born, ready, type: 0 wild plant | 1 farmed | 2 corpse, removed }
 const FOOD_CELL = 5;

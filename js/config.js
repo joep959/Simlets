@@ -160,6 +160,35 @@ const PARAM_TIPS = {
 const P = {};
 for (const d of PARAM_DEFS) P[d[1]] = d[6];
 
+// Add sliders from another file (events, future systems). Call at load time, before ui.js builds the panel.
+// rows use the PARAM_DEFS format; tips map key -> hover text. Sets P defaults (keeps a value that is already set).
+// Rows with the same section name are grouped under one heading wherever they were added.
+function addParams(rows, tips) {
+  for (const r of rows) { PARAM_DEFS.push(r); if (!(r[1] in P)) P[r[1]] = r[6]; }
+  Object.assign(PARAM_TIPS, tips || {});
+}
+
+// ---- Systems registry: world upkeep that runs on a fixed schedule inside Sim.step ----
+// registerSystem({ name, every, phase, update(tick), reset(), save(), load(o) }); only name and update are required.
+//   every  run when tick % every === 0 (default 1 = every tick)
+//   phase  'pre' (default): after wild-food spawning and food rot, before immigration;
+//          'post': after immigration, before the simlets move
+//   reset  called by Sim.reset (new world / restart / before a load)
+//   save / load  optional: Save.serialize stores save()'s plain-JSON result under o.systems[name], and
+//          Save.restore hands it back to load() after everything else is restored
+// Systems run in registration order (= script load order), which is part of the deterministic tick.
+const Systems = [];
+function registerSystem(sys) {
+  if (Systems.some(s => s.name === sys.name)) throw new Error('System registered twice: ' + sys.name);
+  Systems.push(Object.assign({ every: 1, phase: 'pre' }, sys));
+}
+function runSystems(phase, tick) {
+  for (let i = 0; i < Systems.length; i++) {
+    const s = Systems[i];
+    if (s.phase === phase && tick % s.every === 0) s.update(tick);
+  }
+}
+
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 function gauss() {   // standard normal (Box-Muller)
   let u = 0; while (u === 0) u = Math.random();

@@ -3,6 +3,8 @@
 // as one JSON file, so long experiments survive a page reload and can be branched.
 
 const SAVE_VERSION = 4;                                     // 4: living land (tree cover); 3 still loads
+// Optional fields added since v4 (older v4 files simply lack them): systems (per-system state, see registerSystem),
+// world.flood, simlet fx. Terrain is one base-36 character per tile (World.encodeTerrain).
 const r4 = v => Math.round(v * 1e4) / 1e4;                  // trim floats so the file stays a sensible size
 const packF = arr => Array.from(arr, r4);
 
@@ -16,6 +18,8 @@ const Save = {
       attackCd: s.attackCd, breedCd: s.breedCd, alarmCd: s.alarmCd, breedMode: s.breedMode, readySince: s.readySince,
       memory: s.memory, field: s.field, species: s.species ? s.species.id : null, inShelter: s.inShelter ? s.inShelter.ti : null, built: s.built || 0, home: s.home, project: s.project,
     }));
+    const systems = {};                                     // every registered system that keeps its own state
+    for (const sys of Systems) if (sys.save) systems[sys.name] = sys.save();
     const foods = [];
     Food.forEach(f => foods.push([r4(f.x), r4(f.y), r4(f.e), r4(f.e0 || 0), f.born, f.ready, f.type, f.rot || 0]));
     return {
@@ -41,7 +45,7 @@ const Save = {
         ruins: [...Shelters.ruins],
         tiles: [...Shelters.tiles.values()].map(sh => ({ ti: sh.ti, owner: packF(sh.owner), progress: sh.progress, done: sh.done,
                  health: r4(sh.health), store: r4(sh.store), lastWork: sh.lastWork, lastUsed: sh.lastUsed })) },
-      food: foods, simlets,
+      food: foods, simlets, systems,
     };
   },
 
@@ -91,6 +95,7 @@ const Save = {
       Sim.simlets.push(s);
     }
     NEXT_ID = o.nextId;
+    for (const sys of Systems) if (sys.load && o.systems && o.systems[sys.name] !== undefined) sys.load(o.systems[sys.name]);
     World.dirty = true;
   },
 };
