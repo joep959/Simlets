@@ -34,24 +34,32 @@ const World = {
   rebuildLists() {
     this.computeShoreDistance();
     this.computeMoisture();
-    this.refreshLand();
+    this.refreshLand(true);
     this.updateIce(typeof Sim !== 'undefined' ? Sim.tick : 0);   // recompute, don't clear: terrain can change mid-winter
     this.dirty = true;
   },
 
-  // Re-derive every land tile's type and rebuild the per-type lists (cheap: no searches). Tiles that now look
-  // different go on the redraw list so the renderer only repaints those.
-  refreshLand() {
-    this.fertileTiles = []; this.grassTiles = []; this.forestTiles = []; this.landTiles = [];
-    for (let i = 0; i < this.terrain.length; i++) {
-      if (this.terrain[i] !== TERRAIN.WATER) this.terrain[i] = this.deriveType(i);
-      const t = this.terrain[i];
-      if (t === TERRAIN.FERTILE) this.fertileTiles.push(i);
-      else if (t === TERRAIN.GRASS) this.grassTiles.push(i);
-      else if (t === TERRAIN.FOREST) this.forestTiles.push(i);
-      if (t !== TERRAIN.WATER) this.landTiles.push(i);
+  // Re-derive every land tile's type; rebuild the per-type lists only if a type changed (or `all`, after the water
+  // changed). Tiles that now look different go on the redraw list so the renderer only repaints those.
+  refreshLand(all) {
+    const terrain = this.terrain, look = this.look, WATER = TERRAIN.WATER;
+    let changed = !!all;
+    for (let i = 0; i < terrain.length; i++) {
+      const old = terrain[i];
+      if (old === WATER) { if (look[i] !== 255) { look[i] = 255; this.redraw.push(i); } continue; }
+      const t = this.deriveType(i);
+      if (t !== old) { terrain[i] = t; changed = true; }
       const k = this.lookKey(i);
-      if (k !== this.look[i]) { this.look[i] = k; this.redraw.push(i); }
+      if (k !== look[i]) { look[i] = k; this.redraw.push(i); }
+    }
+    if (changed) {
+      this.fertileTiles = []; this.grassTiles = []; this.forestTiles = []; this.landTiles = [];
+      for (let i = 0; i < terrain.length; i++) {
+        const t = terrain[i];
+        if (t === WATER) continue;
+        this.landTiles.push(i);
+        (t === TERRAIN.FERTILE ? this.fertileTiles : t === TERRAIN.GRASS ? this.grassTiles : this.forestTiles).push(i);
+      }
     }
     if (this.redraw.length > 4000) { this.redraw.length = 0; this.dirty = true; }   // a full repaint is cheaper (and headless never drains it)
   },
@@ -197,8 +205,9 @@ const World = {
   resetSoil() { this.depleted.clear(); for (let i = 0; i < this.soil.length; i++) this.setSoil(i, this.terrain[i] === TERRAIN.WATER ? 1 : this.soilCap(i)); },
   // nutrients: used up by farming, recovered over time (grassland at half speed), topped up by decay
   setSoil(ti, v) {
-    v = clamp(v, 0, 1); this.soil[ti] = v;
-    if (v < SOIL_MIN) this.depleted.add(ti); else this.depleted.delete(ti);
+    v = clamp(v, 0, 1);
+    const was = this.soil[ti] < SOIL_MIN; this.soil[ti] = v;
+    if ((v < SOIL_MIN) !== was) { if (v < SOIL_MIN) this.depleted.add(ti); else this.depleted.delete(ti); }   // only touch the set on a crossing
   },
   addNutrients(x, y, amount) {
     const tx = x | 0, ty = y | 0;
@@ -208,11 +217,12 @@ const World = {
   },
   // soil drifts toward what its moisture supports: recovers when below (faster when moist), leaches slowly when above
   recoverSoil(ticks) {
-    const step = ticks / P.soilRecovery, L = this.landTiles;
+    const step = ticks / P.soilRecovery, L = this.landTiles, soil = this.soil, moist = this.moist;
     for (let k = 0; k < L.length; k++) {
-      const ti = L[k], s = this.soil[ti], cap = this.soilCap(ti);
-      if (s < cap) this.setSoil(ti, Math.min(cap, s + step * (0.5 + 0.5 * this.moist[ti])));
-      else if (s > cap) this.setSoil(ti, Math.max(cap, s - step * 0.25));
+      const ti = L[k], s = soil[ti], m = moist[ti], cap = Math.fround(0.35 + 0.65 * m);   // = soilCap(ti), inlined; fround so a tile at its cap compares equal
+      if (s === cap) continue;
+      const v = s < cap ? Math.min(cap, s + step * (0.5 + 0.5 * m)) : Math.max(cap, s - step * 0.25);
+      if ((s < SOIL_MIN) !== (v < SOIL_MIN)) this.setSoil(ti, v); else soil[ti] = v;
     }
   },
   // every 100 ticks: trees grow and spread, then tile types are re-derived
@@ -275,7 +285,7 @@ const World = {
     this.computeMoisture();
     if (o.v >= 2) {
       this.trees.set(o.trees);
-      this.depleted.clear(); for (let i = 0; i < o.soil.length; i++) this.setSoil(i, o.soil[i]);
+      this.soil.set(o.soil); this.depleted.clear(); for (let i = 0; i < this.soil.length; i++) if (this.soil[i] < SOIL_MIN) this.depleted.add(i);
     } else {
       this.resetSoil();
       for (let i = 0; i < this.terrain.length; i++) {
