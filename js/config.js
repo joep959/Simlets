@@ -33,7 +33,6 @@ const FOREST_ON = 0.6, FOREST_OFF = 0.4;     // tree cover at which land turns t
 const TREE_RATE = 0.0007;                    // tree growth per tick at full speed (scaled by the Forest growth slider)
 const TREE_SEED = 0.15;                      // how strongly neighbouring trees seed a tile, relative to its own trees
 const BROWSE = 0.15;                         // tree cover eaten off young (non-forest) trees per wild plant eaten there
-const GRASS_SHADE = 0;                       // how much a tile full of plants slows tree seedlings there (0..1): ground competition
 const BRUSHES = [
   { key: 'water',  name: 'Water',        color: '#4a86c0', tip: 'Water. Land near water is moist: its soil can get rich enough to be fertile, and trees grow there. Crossable but costly to swim.' },
   { key: 'land',   name: 'Land',         color: '#d6cf98', tip: 'Bare land: clears trees and resets the soil to what its moisture supports. Near water it becomes fertile by itself.' },

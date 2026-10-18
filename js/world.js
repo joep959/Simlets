@@ -105,8 +105,7 @@ const World = {
         if (nx >= 0 && ny >= 0 && nx < W && ny < H && this.terrain[ny * W + nx] === TERRAIN.FOREST) sum += T[ny * W + nx];   // only established forest seeds
       }
       const K = 0.4 + 0.6 * this.moist[i];
-      const shade = this.terrain[i] === TERRAIN.FOREST ? 1 : 1 - GRASS_SHADE * Math.min(1, Food.tileCount[i] / P.tileCap);   // ground plants crowd out seedlings
-      next[i] = clamp(T[i] + r * shade * (T[i] + TREE_SEED * sum / 8) * (K - T[i]), 0, 1);
+      next[i] = clamp(T[i] + r * (T[i] + TREE_SEED * sum / 8) * (K - T[i]), 0, 1);
     }
     T.set(next);
   },

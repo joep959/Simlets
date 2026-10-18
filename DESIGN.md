@@ -132,7 +132,7 @@ NEAT-style clustering:
 
 - `World.soil` holds nutrients from 0 to 1 per tile. A tile is **dormant** below `SOIL_MIN` (0.3): no farming and no wild growth there.
 - **Farming:** yield = farmCost × land yield × soil on the farmer's tile. The farmer's tile drops to 0, and each neighbouring tile that receives a crop loses 0.5 (crops are not planted on dormant tiles).
-- **Recovery:** every 25 ticks, fertile soil gains 25/`soilRecovery` (default 4,000 ticks to full); grassland gains half that.
+- **Recovery:** every 25 ticks, fertile soil gains 25/`soilRecovery` (default 4,000 ticks to full); grassland gains half that. (Superseded by §9j: soil recovers toward a moisture-based cap.)
 - **Recycling:** rotting corpses and rotted food return `SOIL_PER_ENERGY` (0.02) nutrients per unit of energy to their tile.
 - **Sowing:** if farming wins the decision but the ground underfoot is dormant, the simlet walks to the nearest fresh farmable tile within 6 tiles (action `sow`), or wanders if there is none.
 - **Visual:** dormant tiles are drawn pale ("Fallow").
@@ -255,6 +255,35 @@ NEAT-style clustering:
   - Marking colour: the lineage hue at 24% lightness. Drawn only when the body is at least 4.5 px across.
   - Body length × (0.85 + 0.4·speed) and width × 1/√length; outline width 0.6 + 1.6·aggression.
 
+## 9j. Living land (branch `land-rework`)
+
+- **Painted:** only water vs land. Each land tile carries **moisture**, **soil** and **trees**; its type is derived (`World.deriveType`) every 100 ticks. Everything else still reads `World.terrain`.
+- **Moisture:** BFS distance d from water (diagonal step 1.414); moist = 0.3 + 0.7·e^(−(d−1)/10). Recomputed only when water changes.
+- **Soil cap** = 0.35 + 0.65·moist. Every 25 ticks soil moves toward the cap: up by (25/soilRecovery)·(0.5 + 0.5·moist), down (leaching) at a quarter of the base rate. Rot and corpses can push it above the cap.
+- **Nutrient loop:** a wild plant takes `plantSoil` (default 0.1) from its tile when it spawns, and returns plantSoil × its uneaten fraction when it rots. Eaten plants carry it away, so grazed land wears out. Farming drains soil as before (§9c).
+- **Trees:** every 100 ticks, T += 0.0007·treeGrowth·100·(T + 0.15·ΣT_forest-neighbours/8)·(K − T), with K = 0.4 + 0.6·moist. Only established forest tiles seed, so dry-land forests (K ≈ 0.58) keep a thin fringe and only moist land is invaded. Front speed is measured at 1 tile/yr at moist 1, 0.6 at moist 0.5.
+  - Browsing: each wild plant eaten on a non-forest tile removes 0.15 tree cover there. Farming clears trees on its plots; a finished shelter fells its tile; a collapsed one leaves cleared, rich (soil 1) ground.
+- **Types (with a gap between on and off levels):** forest if T ≥ 0.6 (stays forest down to 0.4); else fertile if soil ≥ 0.75 (stays fertile down to 0.6); else grassland.
+- **Brushes:** Water, Land (clears trees, soil to cap), Plant forest (T = 1), Enrich soil (soil = 1).
+- **Formats:** map JSON v2 adds trees and soil; save v4 adds trees. Old maps and v3 saves convert: painted forest → T = 1, painted fertile → soil 1, painted grassland → soil ≤ 0.65.
+- **Rendering:** a per-tile look key (type, soil level, tree level); only changed tiles are repainted. Saplings (T ≥ 0.2) show as dots, and richer soil as a greener tint.
+- **Calibration:**
+  - Moisture reach 10 tiles + base 0.3 gives 16–27% fertile on random maps (the old painted maps had 18–36%).
+- **Tests (Oct 2026, seeded maps; "main" = before the rework):**
+
+  | 7 years (40k ticks) | Lowest bust pop | Fertile, start → end | Forest, start → end |
+  |---|---|---|---|
+  | main | 74 / 93 / 132 | static | static |
+  | browse 0.03, plantSoil 0.2 (first try) | – | fell to 2–4% within 10 yrs | rose by 15–30 points |
+  | browse 0.15, plantSoil 0.2 | 134 / 181 / 7 | 15–26 → 10–16% | +8 to +11 points |
+  | **browse 0.15, plantSoil 0.1 (chosen)** | 133 / 180 / 59 | 15–26 → 12–19% | +8 to +9 points |
+
+  - 20 years (chosen settings): forest 20→27→32 / 38→46→53 / 15→20→26%: still rising but slowing. Population about 1,100 on all 3 maps at 20 years; lowest bust 59–180.
+  - An **empty map** on the same seed reached 48% forest (vs 32% with simlets): grazing and farming visibly hold forest back.
+  - 400–1,500 tiles change type every 2 years throughout, so the land never freezes.
+  - Ground-plant shading of seedlings changed forest by only 1–2 points; not kept.
+  - Fire (on the events docket) is the natural long-term check on forest.
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.
@@ -304,7 +333,7 @@ NEAT-style clustering:
 - Mountains (block line of sight).
 - Pure neural brain (no rule scores), or adding more brain inputs (e.g. scent, memory of prey).
 - **Joe's docket (Oct 2026):**
-  - **Land rework:** paint only land and water. Fertility, grassland and forest are derived from continuous per-tile fields (moisture from water, soil nutrients, tree cover that spreads to neighbours) and change with simlet use, so you can see migration and de/reforestation.
+  - **Land rework:** phase 1 built (§9j). Next: a land-over-time chart; fully continuous food (soil × moisture) instead of the 3 derived types, if they feel steppy; hooks for drought, fire and flood.
   - **Brain rework:** more raw senses (counts of food, kin and threats by direction), more weight to the brain over the rules, and memory (a recurrent brain).
   - **Build what?:** a two-level decision (build → which structure), plus more structures.
   - **Random events:** plague, drought, fire, flood, bounty.
