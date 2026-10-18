@@ -98,10 +98,12 @@ const Sim = {
 
   step() {
     this.tick++;
+    // wild food, per terrain type in a fixed order (TERRAIN_INFO: spawn rate slider, and whether bust reduces it)
     const mult = World.season(this.tick) === 0 ? 1 : P.bustFactor;
-    this.spawnOn(World.fertileTiles, P.fertileSpawn / 1000 * mult);
-    this.spawnOn(World.grassTiles, P.grassSpawn / 1000 * mult);
-    this.spawnOn(World.forestTiles, P.forestSpawn / 1000);          // forest: low but steady, unaffected by bust
+    for (const t of SPAWN_TYPES) {
+      const info = TERRAIN_INFO[t];
+      this.spawnOn(World.typeTiles[t], P[info.spawnKey] / 1000 * (info.bustHit ? mult : 1));   // forest: steady all year
+    }
     if (this.tick % 25 === 0) { this.rotFood(); World.recoverSoil(25); World.fadeScent(25); }
     if (this.tick % 100 === 0) { World.updateLand(100); World.updateIce(this.tick); }
     if (this.tick % 25 === 0) Shelters.update(this.tick);

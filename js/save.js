@@ -22,7 +22,7 @@ const Save = {
       version: SAVE_VERSION, savedAt: new Date().toISOString(),
       params: { ...P }, brainMode: Brain.mode, nextId: NEXT_ID,
       world: {
-        terrain: Array.from(World.terrain).join(''), soil: packF(World.soil), trees: packF(World.trees), scent: packF(World.scent),
+        terrain: World.encodeTerrain(), soil: packF(World.soil), trees: packF(World.trees), scent: packF(World.scent),
         iceNoise: packF(World.iceNoise), tilled: [...World.tilled],
       },
       sim: {

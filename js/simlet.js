@@ -67,8 +67,8 @@ class Simlet {
 function think(s, sim) {
   const g = s.g, tick = sim.tick;
   const night = World.isNight(tick);
-  const here = World.at(s.x, s.y);
-  const range = s.visionRange * (here === TERRAIN.FOREST ? 0.6 : 1) * (night ? 0.6 : 1);
+  const here = World.at(s.x, s.y), hereInfo = TERRAIN_INFO[here];
+  const range = s.visionRange * hereInfo.vision * (night ? 0.6 : 1);
   s.range = range;
   const ef = s.energy / s.maxEnergy, hunger = 1 - ef;
   const ready = s.age >= s.matureAge && s.breedCd === 0 && ef >= s.breedAt;
@@ -154,7 +154,7 @@ function think(s, sim) {
     if (v > scentBest) { scentBest = v; scentDir = a; }
   }
   const smelt = scentBest > s.scentThreshold ? clamp(scentBest / 1.0, 0, 1) : 0;   // 0 = smells nothing
-  const farmable = here === TERRAIN.FERTILE || here === TERRAIN.GRASS;
+  const farmable = !!hereInfo.farmKey;
   // hard limits = physically possible; judgements (hungry? danger?) are soft penalties the brain can learn to overrule
   const canFarm = farmable && s.energy >= P.farmCost * 1.5;
   const danger = 1 / (1 + 4 * threatScore);       // ~1 with harmless strangers about, small with a real threat close
@@ -191,7 +191,7 @@ function think(s, sim) {
     x[9] = foodWorth; x[10] = food ? 1 - foodD / range : 0;
     x[11] = World.darkness(tick); x[12] = World.season(tick); x[13] = Math.min(1, kinCount / 5);
     x[14] = ready ? 1 : 0; x[15] = s.age / s.maxAge;
-    x[16] = here === TERRAIN.FOREST ? 1 : 0; x[17] = World.wet(s.x, s.y) ? 1 : 0;   // where it's standing
+    x[16] = hereInfo.forest ? 1 : 0; x[17] = World.wet(s.x, s.y) ? 1 : 0;   // where it's standing
     x[18] = World.freshSoil((s.y | 0) * WORLD_W + (s.x | 0)) ? 1 : 0; x[19] = smelt;
     x[20] = home ? Math.max(0, 1 - home.d / SHELTER_R) : 0; x[21] = store ? Math.min(1, store.sh.store / STORE_CAP) : 0; x[22] = site ? 1 : 0;
     { const bust = World.season(tick) === 1, left = 1 - World.seasonProgress(tick);
@@ -315,7 +315,7 @@ function act(s, sim) {
     if (s.exhausted && s.stam > 0.3 * s.staminaMax) s.exhausted = false;
   }
   s.heading += clamp(wrapAngle(s.desired - s.heading), -0.3, 0.3);
-  const here = World.at(s.x, s.y);
+  const here = World.at(s.x, s.y), hereInfo = TERRAIN_INFO[here];
   const inWater = World.wet(s.x, s.y);            // open water; frozen water walks like land
   const v = s.moveSpeed * (inWater ? 0.5 : 1);
   if (v > 0) {
@@ -334,12 +334,12 @@ function act(s, sim) {
   s.energy -= P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1);
   // winter cold: extra idle drain in bust, mostly escaped under forest cover
   const inside = !!s.inShelter;
-  const cold = inside ? 0 : World.season(sim.tick) === 1 ? P.winterCold * (here === TERRAIN.FOREST ? 1 - P.forestShelter : 1) : 0;
+  const cold = inside ? 0 : World.season(sim.tick) === 1 ? P.winterCold * (hereInfo.coldKey ? 1 - P[hereInfo.coldKey] : 1) : 0;
   s.energy -= P.idleCost * s.drainMult * (1 + cold) * (inside ? 0.25 : s.action === 'rest' || s.action === 'farm' || s.working ? 0.4 : 1);
 
   // camouflage: breaks with movement, forest boosts it, big bodies show, alarm callers are fully visible
   let c = s.g[G.camo] * 0.85 * (1 - 0.4 * s.g[G.size]);
-  if (here === TERRAIN.FOREST) c = Math.min(1, c + 0.3);
+  if (hereInfo.camo) c = Math.min(1, c + hereInfo.camo);
   c *= 1 - Math.min(1, v / 0.12);
   if (s.alarmTimer > 0) c = 0;
   s.camoEff = c;
@@ -407,8 +407,7 @@ function attack(s, o, sim) {
 }
 
 function doFarm(s, sim) {
-  const here = World.at(s.x, s.y);
-  const mult = here === TERRAIN.FERTILE ? P.farmYieldFertile : here === TERRAIN.GRASS ? P.farmYieldGrass : 0;
+  const farmKey = TERRAIN_INFO[World.at(s.x, s.y)].farmKey, mult = farmKey ? P[farmKey] : 0;
   const hereTi = (s.y | 0) * WORLD_W + (s.x | 0);
   if (!mult || s.energy < P.farmCost * 1.5 || World.soil[hereTi] < SOIL_MIN) return false;
   s.energy -= P.farmCost;

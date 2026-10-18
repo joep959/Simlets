@@ -4,12 +4,31 @@
 const WORLD_W = 200, WORLD_H = 125;   // map size in tiles; all positions are in tile units
 
 const TERRAIN = { GRASS: 0, FERTILE: 1, FOREST: 2, WATER: 3 };
+// Tile property table: everything that behaves differently per terrain type reads these properties instead of
+// comparing to TERRAIN.FOREST etc. (water and ice keep their own special handling). A new type = a new row.
+//   color       map colour (render.js);  chart: line colour on the dark Land chart (null = not charted)
+//   spawnKey    P key of the wild-food spawn rate (‰ per tile per tick), or null = no wild food
+//   spawnOrder  order of the spawn calls in Sim.step (fixed, so the random-number sequence never changes)
+//   bustHit     true = the Bust food multiplier applies to its wild food; false = steady all year
+//   farmKey     P key of the farm-yield multiplier, or null = not farmable
+//   vision      vision range multiplier while standing inside it
+//   camo        camouflage bonus while standing inside it (added, capped at 1)
+//   coldKey     P key of the share of winter cold escaped while inside it, or null = no cold shelter
+//   buildable   shelters can be built on it;  timber: building in or next to it is cheaper (costFactor)
+//   forest      counts as established forest: brain 'inForest' input, seeds tree growth, not browsed
 const TERRAIN_INFO = [
-  { name: 'Grassland', color: '#d6cf98' },
-  { name: 'Fertile',   color: '#6aa84f' },
-  { name: 'Forest',    color: '#3d6b45' },
-  { name: 'Water',     color: '#4a86c0' },
+  { name: 'Grassland', color: '#d6cf98', chart: '#d6cf98', spawnKey: 'grassSpawn',   spawnOrder: 1, bustHit: true,  farmKey: 'farmYieldGrass',
+    vision: 1,   camo: 0,   coldKey: null,            buildable: true,  timber: false, forest: false },
+  { name: 'Fertile',   color: '#6aa84f', chart: '#8fd16a', spawnKey: 'fertileSpawn', spawnOrder: 0, bustHit: true,  farmKey: 'farmYieldFertile',
+    vision: 1,   camo: 0,   coldKey: null,            buildable: true,  timber: false, forest: false },
+  { name: 'Forest',    color: '#3d6b45', chart: '#3fae7a', spawnKey: 'forestSpawn',  spawnOrder: 2, bustHit: false, farmKey: null,
+    vision: 0.6, camo: 0.3, coldKey: 'forestShelter', buildable: true,  timber: true,  forest: true },
+  { name: 'Water',     color: '#4a86c0', chart: null,      spawnKey: null,           spawnOrder: 9, bustHit: false, farmKey: null,
+    vision: 1,   camo: 0,   coldKey: null,            buildable: false, timber: false, forest: false },
 ];
+// terrain types with wild food, in spawn order (fertile, grassland, forest)
+const SPAWN_TYPES = TERRAIN_INFO.map((t, i) => i).filter(i => TERRAIN_INFO[i].spawnKey)
+  .sort((a, b) => TERRAIN_INFO[a].spawnOrder - TERRAIN_INFO[b].spawnOrder);
 
 // Fixed behaviour constants (not worth a slider yet)
 const THINK_INTERVAL = 5;     // ticks between decisions

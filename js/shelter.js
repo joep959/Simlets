@@ -21,8 +21,7 @@ const Shelters = {
   reset() { this.tiles.clear(); this.ruins.clear(); this.started = this.finished = this.crumbled = this.collapsed = 0; },
 
   buildable(ti) {
-    const t = World.terrain[ti];
-    return (t === TERRAIN.GRASS || t === TERRAIN.FERTILE || t === TERRAIN.FOREST) && !this.tiles.has(ti);
+    return TERRAIN_INFO[World.terrain[ti]].buildable && !this.tiles.has(ti);
   },
   isKin(s, sh) { return similarity(s.g, sh.owner) >= KIN_SIM; },
 
@@ -66,7 +65,7 @@ const Shelters = {
       const nx = tx + dx, ny = ty + dy;
       if (nx < 0 || ny < 0 || nx >= WORLD_W || ny >= WORLD_H) continue;
       const ni = ny * WORLD_W + nx;
-      if (World.terrain[ni] === TERRAIN.FOREST) forest = true;
+      if (TERRAIN_INFO[World.terrain[ni]].timber) forest = true;
       if ((dx === 0) !== (dy === 0)) { const n = this.tiles.get(ni); if (n && n.done) wall = true; }
     }
     return (forest ? 0.6 : 1) * (wall ? 0.6 : 1);

@@ -6,7 +6,8 @@
 
 const World = {
   terrain: new Uint8Array(WORLD_W * WORLD_H),       // derived type per tile (TERRAIN.*); WATER is painted
-  fertileTiles: [],
+  typeTiles: TERRAIN_INFO.map(() => []),            // land tile indices per terrain type (water's list stays empty)
+  fertileTiles: [],                                  // = typeTiles[FERTILE], [GRASS], [FOREST]: kept as shorthands
   grassTiles: [],
   forestTiles: [],
   landTiles: [],
@@ -53,13 +54,14 @@ const World = {
       if (k !== look[i]) { look[i] = k; this.redraw.push(i); }
     }
     if (changed) {
-      this.fertileTiles = []; this.grassTiles = []; this.forestTiles = []; this.landTiles = [];
+      const lists = this.typeTiles = TERRAIN_INFO.map(() => []); this.landTiles = [];
       for (let i = 0; i < terrain.length; i++) {
         const t = terrain[i];
         if (t === WATER) continue;
         this.landTiles.push(i);
-        (t === TERRAIN.FERTILE ? this.fertileTiles : t === TERRAIN.GRASS ? this.grassTiles : this.forestTiles).push(i);
+        lists[t].push(i);
       }
+      this.fertileTiles = lists[TERRAIN.FERTILE]; this.grassTiles = lists[TERRAIN.GRASS]; this.forestTiles = lists[TERRAIN.FOREST];
     }
     if (this.redraw.length > 4000) { this.redraw.length = 0; this.dirty = true; }   // a full repaint is cheaper (and headless never drains it)
   },
@@ -110,7 +112,7 @@ const World = {
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
         if (!dx && !dy) continue;
         const nx = x + dx, ny = y + dy;
-        if (nx >= 0 && ny >= 0 && nx < W && ny < H && this.terrain[ny * W + nx] === TERRAIN.FOREST) sum += T[ny * W + nx];   // only established forest seeds
+        if (nx >= 0 && ny >= 0 && nx < W && ny < H && TERRAIN_INFO[this.terrain[ny * W + nx]].forest) sum += T[ny * W + nx];   // only established forest seeds
       }
       const K = 0.4 + 0.6 * this.moist[i];
       next[i] = clamp(T[i] + r * (T[i] + TREE_SEED * sum / 8) * (K - T[i]), 0, 1);
@@ -120,7 +122,7 @@ const World = {
   // a grazer eating a wild plant here nibbles young trees back (established forest is unaffected)
   browse(x, y, frac) {
     const i = (y | 0) * WORLD_W + (x | 0);
-    if (this.terrain[i] !== TERRAIN.FOREST && this.trees[i] > 0) this.trees[i] = Math.max(0, this.trees[i] - BROWSE * frac);
+    if (!TERRAIN_INFO[this.terrain[i]].forest && this.trees[i] > 0) this.trees[i] = Math.max(0, this.trees[i] - BROWSE * frac);
   },
   clearTrees(i) { this.trees[i] = 0; },
 
@@ -227,7 +229,7 @@ const World = {
   },
   // every 100 ticks: trees grow and spread, then tile types are re-derived
   updateLand(ticks) { this.growTrees(ticks); this.refreshLand(); },
-  freshSoil(ti) { const t = this.terrain[ti]; return (t === TERRAIN.FERTILE || t === TERRAIN.GRASS) && this.soil[ti] >= SOIL_MIN && !Shelters.tiles.has(ti); },
+  freshSoil(ti) { return !!TERRAIN_INFO[this.terrain[ti]].farmKey && this.soil[ti] >= SOIL_MIN && !Shelters.tiles.has(ti); },   // farmable and not dormant
 
   // brushes (BRUSHES in config.js): water and land reshape the map; forest and enrich are godly nudges to land
   paint(cx, cy, radius, brush) {
@@ -272,16 +274,24 @@ const World = {
     this.rebuildLists();
   },
 
+  // Terrain encoding (map files and saves): one base-36 character per tile (0-9 then a-z), so up to 36 terrain
+  // types fit. While every type is below 10 this is exactly the old one-digit-per-tile string, so old files load
+  // unchanged and new files stay readable by old code. decodeTerrain also accepts a plain number array.
+  encodeTerrain() { let s = ''; for (let i = 0; i < this.terrain.length; i++) s += this.terrain[i].toString(36); return s; },
+  decodeTerrain(data) {
+    for (let i = 0; i < data.length; i++) this.terrain[i] = typeof data === 'string' ? parseInt(data[i], 36) : data[i];
+  },
+
   // Map file: painted water plus the living layers (trees, soil). Old maps (no version) only had painted types:
   // they're converted so painted forest becomes trees and painted fertile land becomes enriched soil.
   toJSON() {
     const q = a => Array.from(a, v => Math.round(v * 100) / 100);
-    return JSON.stringify({ w: WORLD_W, h: WORLD_H, v: 2, data: Array.from(this.terrain).join(''), trees: q(this.trees), soil: q(this.soil) });
+    return JSON.stringify({ w: WORLD_W, h: WORLD_H, v: 2, data: this.encodeTerrain(), trees: q(this.trees), soil: q(this.soil) });
   },
   fromJSON(text) {
     const o = JSON.parse(text);
     if (o.w !== WORLD_W || o.h !== WORLD_H || o.data.length !== WORLD_W * WORLD_H) throw new Error('Map size mismatch');
-    for (let i = 0; i < o.data.length; i++) this.terrain[i] = +o.data[i];
+    this.decodeTerrain(o.data);
     this.computeMoisture();
     if (o.v >= 2) {
       this.trees.set(o.trees);
