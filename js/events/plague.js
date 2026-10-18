@@ -3,17 +3,20 @@
 // The strain is patient zero's genome. Every 25 ticks each sick simlet can infect simlets within PLAGUE_RANGE tiles,
 // with chance plagueSpread × similarity(strain, host)² × (1 − 0.8 × resistance gene), so it races through dense,
 // genetically similar herds and barely touches foreigners. Sick simlets pay extra idle drain and may die of it
-// (cause 'disease'); survivors are immune for a while. The outbreak ends when nobody is sick. See DESIGN.md §14.
+// (cause 'disease'); survivors are immune for a while. The spread chance fades to 0 over PLAGUE_FADE ticks and the
+// outbreak ends when nobody is sick. See DESIGN.md §14.
 //
 // Per-simlet state: s.fx.plague = { ev: event id, sick: tick it recovers } while sick, { imm: tick immunity ends } after.
 
 const PLAGUE_RANGE = 4;         // tiles: contact distance for passing it on (1.5 gave R0 < 1 at normal densities)
 const PLAGUE_CHECK = 25;        // ticks between transmission / death rolls
+const PLAGUE_FADE = 6000;       // ticks (a year): the spread chance falls linearly to 0 by then, so an outbreak can't become
+                                // endemic (newborns are never immune, and without this one ran for 18,000+ ticks)
 const PLAGUE_SEEDS = 5;         // first cases: patient zero plus up to 4 close relatives in contact range
 
 const Plague = {
   // reused by the transmission query (no closure allocated per sick simlet)
-  ev: null, src: null, tick: 0,
+  ev: null, src: null, tick: 0, spread: 0,
   infect(ev, s, tick) {
     const len = P.plagueLength * (0.67 + 0.66 * Math.random());       // 0.67 .. 1.33 × the slider
     s.fx.plague = { ev: ev.id, sick: Math.round(tick + len) };
@@ -30,7 +33,7 @@ const Plague = {
     const dx = o.x - s.x, dy = o.y - s.y;
     if (dx * dx + dy * dy > PLAGUE_RANGE * PLAGUE_RANGE) return;
     const sm = similarity(ev.strain, o.g);
-    const p = P.plagueSpread * sm * sm * (1 - 0.8 * (o.g[G.resistance] || 0));
+    const p = Plague.spread * sm * sm * (1 - 0.8 * (o.g[G.resistance] || 0));
     if (Math.random() < p) Plague.infect(ev, o, Plague.tick);
   },
   label(ev) { return `species #${ev.sp}`; },
@@ -43,7 +46,7 @@ const Plague = {
 
 defineEvent({
   key: 'plague', name: 'Plague', color: '#a77bf0', needsPoint: true,
-  tip: 'A disease outbreak. Starts in one simlet (the one nearest the click; automatic outbreaks pick a random member of the largest species) plus up to 4 close relatives beside it, and spreads by close contact, mostly to simlets genetically similar to that first case. Sick simlets burn extra energy and may die; survivors become immune for a while. Ends when nobody is sick.',
+  tip: 'A disease outbreak. Starts in one simlet (the one nearest the click; automatic outbreaks pick a crowded member of the largest species: the one with the most herd-mates close by, of 12 tried at random) plus up to 4 close relatives beside it, and spreads by close contact, mostly to simlets genetically similar to that first case. Sick simlets burn extra energy and may die; survivors become immune for a while (children are born without immunity). The strain weakens over a year, and the outbreak ends when nobody is sick. Sick simlets have a yellow-green ring.',
   params: [
     ['Plague', 'plagueSpread',   'Plague: spread chance',        0, 1,     0.01,  0.5],
     ['Plague', 'plagueLength',   'Plague: sickness length',      100, 3000, 50,   900],
@@ -52,7 +55,7 @@ defineEvent({
     ['Plague', 'plagueImmunity', 'Plague: immunity length',      0, 20000, 500,   5000],
   ],
   tips: {
-    plagueSpread: `Every ${PLAGUE_CHECK} ticks, each sick simlet may infect each simlet within ${PLAGUE_RANGE} tiles with this chance × similarity² (genetic similarity of that simlet to the first case) × (1 − 0.8 × its Resistance gene). Close relatives of the first case catch it easily; other species almost never. Inside a shelter it only passes between housemates.`,
+    plagueSpread: `Every ${PLAGUE_CHECK} ticks, each sick simlet may infect each simlet within ${PLAGUE_RANGE} tiles with this chance × similarity² (genetic similarity of that simlet to the first case) × (1 − 0.8 × its Resistance gene). Close relatives of the first case catch it easily; other species almost never. Inside a shelter it only passes between housemates. The strain weakens with time: this chance falls linearly to zero ${PLAGUE_FADE} ticks after the outbreak began, so every outbreak ends.`,
     plagueLength: 'Average ticks a simlet stays sick (each case lasts 67% to 133% of this). Then it recovers and becomes immune.',
     plagueDrain: 'Extra energy drain while sick, as a multiple of its normal idle drain (0.5 = +50%), paid every tick even when resting or indoors. Can starve weak simlets (counted as Died: disease).',
     plagueDeath: `Chance of dying of the disease, rolled every ${PLAGUE_CHECK} ticks while sick (0.006 over a 900-tick illness kills about 20% of cases outright; the extra drain starves some more).`,
@@ -69,13 +72,19 @@ defineEvent({
     if (opts.x != null && !opts.biggest) {                 // manual: the simlet nearest the click
       let bd = Infinity;
       for (const s of L) { if (s.dead) continue; const d = (s.x - opts.x) ** 2 + (s.y - opts.y) ** 2; if (d < bd) { bd = d; p0 = s; } }
-    } else {                                               // automatic: a random member of the largest species
+    } else {                                               // automatic: a crowded member of the largest species
       let big = null; for (const sp of Species.live.values()) if (!big || sp.count > big.count) big = sp;
       if (!big || big.count < 10) return false;            // no herd worth an outbreak
       const m = L.filter(s => !s.dead && s.species === big);
       const ok = m.filter(s => !(s.fx.plague && s.fx.plague.imm > Sim.tick));
       const pool = ok.length ? ok : m; if (!pool.length) return false;
-      p0 = pool[(Math.random() * pool.length) | 0];
+      // of up to 12 random members, the one with the most herd-mates in contact range (disease starts in a crowd)
+      let best = -1;
+      for (let k = 0; k < 12; k++) {
+        const c = pool[(Math.random() * pool.length) | 0]; let n = 0;
+        Sim.querySimlets(c.x, c.y, PLAGUE_RANGE, o => { if (o !== c && o.species === big && (o.x - c.x) ** 2 + (o.y - c.y) ** 2 <= PLAGUE_RANGE * PLAGUE_RANGE) n++; });
+        if (n > best) { best = n; p0 = c; }
+      }
     }
     if (!p0) return false;
     ev.x = p0.x; ev.y = p0.y;
@@ -110,8 +119,9 @@ defineEvent({
       S[w++] = s;
     }
     S.length = w;
-    if (roll && P.plagueSpread > 0) {
-      Plague.ev = ev; Plague.tick = tick;
+    const fade = 1 - (tick - ev.start) / PLAGUE_FADE;         // the strain weakens: spread falls to 0 over PLAGUE_FADE ticks
+    if (roll && P.plagueSpread > 0 && fade > 0) {
+      Plague.ev = ev; Plague.tick = tick; Plague.spread = P.plagueSpread * fade;
       const n = S.length;                                   // new cases join the list but don't spread until the next roll
       for (let i = 0; i < n; i++) {
         const s = S[i]; if (s.dead) continue;
