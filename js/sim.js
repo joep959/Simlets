@@ -17,8 +17,7 @@ const Sim = {
     this.arrivals = 0; this.lastImmigration = 0; this.dropFx = []; this.birthsSex = 0; this.birthsAsex = 0; this.brainCorr = 0; this.brainThinks = 0; this.brainInfluence = 0;
     this.history = { interval: 50, t: [], pop: [], herb: [], omni: [], carn: [], food: [], mean: [], sd: [], species: [] };
     Species.reset();
-    World.tilled.clear();
-    World.resetSoil();
+    World.tilled.clear();                     // soil and trees are part of the living map: a restart keeps them
     World.ice.fill(0); World.iceTiles = [];
     World.scent.fill(0);
     Shelters.reset();
@@ -104,7 +103,7 @@ const Sim = {
     this.spawnOn(World.grassTiles, P.grassSpawn / 1000 * mult);
     this.spawnOn(World.forestTiles, P.forestSpawn / 1000);          // forest: low but steady, unaffected by bust
     if (this.tick % 25 === 0) { this.rotFood(); World.recoverSoil(25); World.fadeScent(25); }
-    if (this.tick % 100 === 0) World.updateIce(this.tick);
+    if (this.tick % 100 === 0) { World.updateLand(100); World.updateIce(this.tick); }
     if (this.tick % 25 === 0) Shelters.update(this.tick);
     if (P.immigration > 0 && this.tick - this.lastImmigration >= P.immigration) {   // trickle of newcomers
       this.lastImmigration = this.tick;
@@ -155,6 +154,7 @@ const Sim = {
     for (let k = 0; k < n; k++) {
       const ti = tiles[(Math.random() * tiles.length) | 0];
       if (Food.tileCount[ti] >= P.tileCap || World.soil[ti] < SOIL_MIN || Shelters.tiles.has(ti)) continue;   // dormant soil / shelters grow nothing
+      World.setSoil(ti, World.soil[ti] - P.plantSoil);          // a growing plant draws nutrients from its tile
       Food.add({ x: ti % WORLD_W + Math.random(), y: ((ti / WORLD_W) | 0) + Math.random(),
                  e: P.plantEnergy, born: this.tick, ready: this.tick, type: 0 });
     }
@@ -172,7 +172,8 @@ const Sim = {
         // plants age faster in the warm boom (boomRot ×), normally in bust; stored food in shelters never rots
         f.rot = (f.rot || 0) + 25 * (boom ? P.boomRot : 1);
         if (f.rot > P.rotTime * (f.type === 1 ? P.cropKeep : 1)) {                  // crops store better
-          World.addNutrients(f.x, f.y, f.e * SOIL_PER_ENERGY); Food.remove(f);
+          // a rotting wild plant gives back what it drew from the soil (less any part eaten); crops return by energy
+          World.addNutrients(f.x, f.y, f.type === 0 ? P.plantSoil * f.e / P.plantEnergy : f.e * SOIL_PER_ENERGY); Food.remove(f);
         }
       }
     });

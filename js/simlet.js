@@ -387,6 +387,7 @@ function act(s, sim) {
 function bite(s, f) {
   const amt = Math.min(f.e, f.type === 2 ? MEAT_BITE : P.plantBite);   // plants are slow to eat, meat is quick
   f.e -= amt;
+  if (f.type === 0) World.browse(f.x, f.y, amt / P.plantEnergy);   // grazing keeps young trees down
   const eff = f.type === 2 ? s.meatEff : s.plantEff;
   s.energy = Math.min(s.maxEnergy, s.energy + amt * eff);
   if (f.e <= 0.01) { Food.remove(f); s.needThink = true; }
@@ -423,14 +424,14 @@ function doFarm(s, sim) {
   }
   const bonus = (1 + 0.125 * Math.min(4, nearFields)) * (nearHouse ? 1.25 : 1);
   const total = P.farmCost * mult * World.soil[hereTi] * bonus, n = Math.max(1, Math.round(total / P.plantEnergy));
-  World.setSoil(hereTi, 0);
+  World.setSoil(hereTi, 0); World.clearTrees(hereTi);          // farming clears saplings off the field
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 2 * Math.PI, r = 0.5 + Math.random() * 1.5;
     const x = clamp(s.x + Math.cos(a) * r, 0.05, WORLD_W - 0.05), y = clamp(s.y + Math.sin(a) * r, 0.05, WORLD_H - 0.05);
     const ti = (y | 0) * WORLD_W + (x | 0);
     if (World.at(x, y) === TERRAIN.WATER) continue;
     if (Food.tileCount[ti] >= P.tileCap + 2) continue;
-    if (ti !== hereTi) { if (World.soil[ti] < SOIL_MIN) continue; World.setSoil(ti, World.soil[ti] - 0.5); }   // neighbouring plots tire too
+    if (ti !== hereTi) { if (World.soil[ti] < SOIL_MIN) continue; World.setSoil(ti, World.soil[ti] - 0.5); World.clearTrees(ti); }   // neighbouring plots tire too
     Food.add({ x, y, e: total / n, born: sim.tick, ready: sim.tick + FARM_GROW_TIME, type: 1 });
     World.tilled.set((y | 0) * WORLD_W + (x | 0), sim.tick);
   }

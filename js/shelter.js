@@ -99,7 +99,7 @@ const Shelters = {
       if (sh.progress >= 0.999) {
         sh.done = true; sh.progress = 1; sh.health = 1; this.finished++;
         s.project = null; s.home = sh.ti;              // finished: this is now home
-        if (World.terrain[sh.ti] === TERRAIN.FOREST) { World.terrain[sh.ti] = TERRAIN.GRASS; World.rebuildLists(); }  // trees felled
+        if (World.trees[sh.ti] > 0) { World.clearTrees(sh.ti); World.refreshLand(); }  // trees felled
       }
     } else sh.health = Math.min(1, sh.health + 0.25);
     return true;
@@ -127,7 +127,7 @@ const Shelters = {
       sh.health -= 25 / P.shelterLife * (sh.occ > 0 ? 0.1 : 1);
       if (sh.health <= 0) {                     // collapse: rubble on rich soil (any trees are long gone)
         this.tiles.delete(sh.ti); this.ruins.set(sh.ti, tick); this.collapsed++;
-        World.terrain[sh.ti] = TERRAIN.FERTILE; World.setSoil(sh.ti, 1); terrainChanged = true;
+        World.clearTrees(sh.ti); World.setSoil(sh.ti, 1); terrainChanged = true;
         continue;
       }
       if (sh.store < STORE_CAP) Food.query(sh.x, sh.y, 3, f => {     // granary: ripe crops nearby are gathered in
@@ -139,6 +139,6 @@ const Shelters = {
       });
     }
     for (const [ti, t] of this.ruins) if (tick - t > 8000) this.ruins.delete(ti);
-    if (terrainChanged) World.rebuildLists();
+    if (terrainChanged) World.refreshLand();
   },
 };

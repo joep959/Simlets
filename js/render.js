@@ -31,28 +31,45 @@ const Render = {
   toScreen(x, y) { return [(x - this.cam.x) * this.cam.zoom + this.w / 2, (y - this.cam.y) * this.cam.zoom + this.h / 2]; },
   toWorld(px, py) { return [(px - this.w / 2) / this.cam.zoom + this.cam.x, (py - this.h / 2) / this.cam.zoom + this.cam.y]; },
 
+  // cached terrain image: fully rebuilt when the map changes, otherwise only tiles whose look changed are repainted
   rebuildTerrain() {
     const c = this.terrainCanvas.getContext('2d');
-    for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) {
-      const t = World.terrain[y * WORLD_W + x];
-      c.fillStyle = TERRAIN_INFO[t].color;
-      c.fillRect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX);
-      // subtle texture so terrain doesn't look like flat paint
-      const h = ((x * 73856093) ^ (y * 19349663)) >>> 0;
-      if (t === TERRAIN.FOREST) {
-        c.fillStyle = 'rgba(20,45,25,0.45)';
-        c.beginPath(); c.arc(x * TILE_PX + (h % 4) + 1, y * TILE_PX + ((h >> 3) % 4) + 1, 1.6, 0, 7); c.fill();
-      } else if (t === TERRAIN.WATER) {
-        if (h % 5 === 0) { c.fillStyle = 'rgba(255,255,255,0.06)'; c.fillRect(x * TILE_PX + 1, y * TILE_PX + 2, 3, 1); }
-      } else if (h % 3 === 0) {
-        c.fillStyle = 'rgba(0,0,0,0.05)'; c.fillRect(x * TILE_PX + (h % 5), y * TILE_PX + ((h >> 4) % 5), 1, 1);
-      }
+    for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) this.drawTile(c, x, y);
+    World.dirty = false; World.redraw.length = 0;
+  },
+  drawTile(c, x, y) {
+    const i = y * WORLD_W + x, t = World.terrain[i], px = x * TILE_PX, py = y * TILE_PX;
+    c.fillStyle = TERRAIN_INFO[t].color;
+    c.fillRect(px, py, TILE_PX, TILE_PX);
+    const h = ((x * 73856093) ^ (y * 19349663)) >>> 0;
+    if (t === TERRAIN.WATER) {
+      if (h % 5 === 0) { c.fillStyle = 'rgba(255,255,255,0.06)'; c.fillRect(px + 1, py + 2, 3, 1); }
+      return;
     }
-    World.dirty = false;
+    const soilLvl = Math.min(3, (World.soil[i] * 4) | 0), tr = World.trees[i];
+    if (t === TERRAIN.FOREST) {                     // denser forest = darker
+      c.fillStyle = `rgba(15,35,20,${(0.35 * (tr - 0.4)).toFixed(2)})`; c.fillRect(px, py, TILE_PX, TILE_PX);
+      c.fillStyle = 'rgba(20,45,25,0.45)';
+      c.beginPath(); c.arc(px + (h % 4) + 1, py + ((h >> 3) % 4) + 1, 1.6, 0, 7); c.fill();
+      return;
+    }
+    // richer soil = greener; grassland close to turning fertile shows a green tinge
+    if (t === TERRAIN.FERTILE) { if (soilLvl < 3) { c.fillStyle = 'rgba(214,207,152,0.25)'; c.fillRect(px, py, TILE_PX, TILE_PX); } }
+    else if (soilLvl >= 2) { c.fillStyle = `rgba(106,168,79,${soilLvl === 3 ? 0.3 : 0.12})`; c.fillRect(px, py, TILE_PX, TILE_PX); }
+    if (h % 3 === 0) { c.fillStyle = 'rgba(0,0,0,0.05)'; c.fillRect(px + (h % 5), py + ((h >> 4) % 5), 1, 1); }
+    if (tr >= 0.2) {                                // saplings: young trees creeping in from a forest edge
+      c.fillStyle = `rgba(45,85,50,${(0.3 + tr).toFixed(2)})`;
+      c.beginPath(); c.arc(px + (h % 4) + 1, py + ((h >> 3) % 4) + 1, 0.6 + 1.2 * tr, 0, 7); c.fill();
+    }
   },
 
   draw(selected, editMode) {
     if (World.dirty) this.rebuildTerrain();
+    else if (World.redraw.length) {
+      const c = this.terrainCanvas.getContext('2d');
+      for (const i of World.redraw) this.drawTile(c, i % WORLD_W, (i / WORLD_W) | 0);
+      World.redraw.length = 0;
+    }
     const ctx = this.ctx, z = this.cam.zoom, tick = Sim.tick;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = '#0b0c0e'; ctx.fillRect(0, 0, this.w, this.h);

@@ -5,7 +5,7 @@ const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 'Max'];   // ticks per f
 const $ = id => document.getElementById(id);
 
 const UI = {
-  running: true, speedIdx: 2, mode: 'run', brush: TERRAIN.FERTILE, brushSize: 3,
+  running: true, speedIdx: 2, mode: 'run', brush: 'water', brushSize: 3,
   selected: null, follow: false, tps: 0, dropArmed: false,
 
   init() {
@@ -19,11 +19,12 @@ const UI = {
     $('modeRun').onclick = () => this.setMode('run');
     $('modeEdit').onclick = () => this.setMode('edit');
     const bw = $('brushes');
-    TERRAIN_INFO.forEach((t, i) => {
+    BRUSHES.forEach((t, i) => {
       const b = document.createElement('button');
-      b.className = 'brush' + (i === this.brush ? ' on' : '');
+      b.className = 'brush' + (t.key === this.brush ? ' on' : '');
       b.innerHTML = `<i class="sw" style="background:${t.color}"></i>${t.name}`;
-      b.onclick = () => { this.brush = i; [...bw.children].forEach((c, j) => c.classList.toggle('on', j === i)); };
+      b.dataset.tip = t.tip;
+      b.onclick = () => { this.brush = t.key; [...bw.children].forEach((c, j) => c.classList.toggle('on', j === i)); };
       bw.appendChild(b);
     });
     $('brushSize').oninput = e => { this.brushSize = +e.target.value; $('brushLbl').textContent = this.brushSize; };
@@ -206,11 +207,12 @@ const UI = {
     $('seasonBar').style.background = bust ? 'var(--warn)' : 'var(--herb)';
     let h = 0, o = 0, c = 0;
     for (const s of Sim.simlets) { const d = s.g[G.diet]; if (d < 0.33) h++; else if (d > 0.66) c++; else o++; }
+    const landShare = () => { const n = Math.max(1, World.landTiles.length), pc = k => Math.round(100 * k / n) + '%'; return `${pc(World.fertileTiles.length)} / ${pc(World.forestTiles.length)}`; };
     const rows = [
       ['Population', Sim.simlets.length], ['Herbivores', h], ['Omnivores', o], ['Carnivores', c],
       ['Food items', Food.count], ['Births', Sim.births], ['↳ sexual / asexual', `${Sim.birthsSex.toLocaleString()} / ${Sim.birthsAsex.toLocaleString()}`], ['Starved', Sim.deaths.starved],
       ['Killed', Sim.deaths.killed], ['Old age', Sim.deaths.old], ['Alarms raised', Sim.alarms],
-      ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Shelters built / building', `${[...Shelters.tiles.values()].filter(s => s.done).length} / ${[...Shelters.tiles.values()].filter(s => !s.done).length}`], ['Food in shelters', Math.round([...Shelters.tiles.values()].reduce((a, s) => a + s.store, 0))], ['Species alive', Species.shown().length], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
+      ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Shelters built / building', `${[...Shelters.tiles.values()].filter(s => s.done).length} / ${[...Shelters.tiles.values()].filter(s => !s.done).length}`], ['Food in shelters', Math.round([...Shelters.tiles.values()].reduce((a, s) => a + s.store, 0))], ['Land fertile / forest', landShare()], ['Species alive', Species.shown().length], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
     ];
     $('stats').innerHTML = rows.map(([k, v]) => `<span>${k}</span><b>${v.toLocaleString()}</b>`).join('');
     $('extinct').classList.toggle('hidden', Sim.simlets.length > 0 || Sim.tick === 0 || this.mode === 'edit');

@@ -24,6 +24,23 @@ const SOIL_MIN = 0.3;          // soil nutrients below this = dormant: no farmin
 const SOIL_PER_ENERGY = 0.02;  // nutrients returned to the soil per unit of energy that rots there
 const VISION_AREA = 200;      // tiles² every simlet can see; the FOV gene only reshapes it (wide+short vs narrow+long)
 
+// Living land (world.js): only land vs water is painted. Fertile / grassland / forest are worked out from each
+// tile's moisture, soil and tree cover, with a gap between the on and off levels so boundary tiles don't flicker.
+const MOIST_BASE = 0.3;                      // moisture of land far from any water (rain alone)
+const MOIST_RANGE = 10;                      // tiles: how far water's moisture reaches inland (exponential fall-off)
+const FERTILE_ON = 0.75, FERTILE_OFF = 0.6;  // soil level at which land turns fertile / stops being fertile
+const FOREST_ON = 0.6, FOREST_OFF = 0.4;     // tree cover at which land turns to forest / stops being forest
+const TREE_RATE = 0.0007;                    // tree growth per tick at full speed (scaled by the Forest growth slider)
+const TREE_SEED = 0.15;                      // how strongly neighbouring trees seed a tile, relative to its own trees
+const BROWSE = 0.15;                         // tree cover eaten off young (non-forest) trees per wild plant eaten there
+const GRASS_SHADE = 0;                       // how much a tile full of plants slows tree seedlings there (0..1): ground competition
+const BRUSHES = [
+  { key: 'water',  name: 'Water',        color: '#4a86c0', tip: 'Water. Land near water is moist: its soil can get rich enough to be fertile, and trees grow there. Crossable but costly to swim.' },
+  { key: 'land',   name: 'Land',         color: '#d6cf98', tip: 'Bare land: clears trees and resets the soil to what its moisture supports. Near water it becomes fertile by itself.' },
+  { key: 'forest', name: 'Plant forest', color: '#3d6b45', tip: 'Godly power: plant mature trees. Forest spreads on its own onto moist land nearby, unless grazers browse the saplings or farmers clear them.' },
+  { key: 'enrich', name: 'Enrich soil',  color: '#6aa84f', tip: 'Godly power: fill the soil with nutrients, making fertile land. Far from water the extra slowly leaches away; grazing and farming use it up.' },
+];
+
 // [section, key, label, min, max, step, default]
 const PARAM_DEFS = [
   ['Evolution',  'mutationRate',     'Mutation rate (per gene)',        0,    0.5,  0.01,  0.06],
@@ -43,6 +60,8 @@ const PARAM_DEFS = [
   ['Food',       'forestSpawn',      'Forest spawn ‰ /tile/tick',       0,    1,    0.01,  0.1],
   ['Food',       'tileCap',          'Max wild food per tile',          1,    6,    1,     2],
   ['Food',       'scentFade',        'Scent half-life (ticks)',         50,   3000, 50,    600],
+  ['Land',       'treeGrowth',       'Forest growth speed ×',           0,    3,    0.1,   1],
+  ['Land',       'plantSoil',        'Soil used per wild plant',        0,    1,    0.05,  0.1],
   ['Time',       'seasonLength',     'Season length (ticks)',           500,  10000,100,   3000],
   ['Time',       'bustShare',        'Bust share of the year',          0.2,  0.8,  0.05,  0.67],
   ['Time',       'dayLength',        'Day length (ticks)',              200,  4000, 50,    1000],
@@ -86,8 +105,10 @@ const PARAM_TIPS = {
   plantBite: 'Handling time for plants: energy taken per tick while eating one. Low = plants are slow, poor-quality food, so herbivores spend long spells standing still eating. Meat is always eaten at 2 per tick.',
   boomRot: 'How much faster wild plants and field crops rot during boom (warm weather) than in bust. Food stored in shelters never rots, so a faster boom rot makes granaries the only way to bank boom-season surplus for winter.',
   cropKeep: 'Farmed crops last this many times longer than wild plants before rotting, like a granary. Lets a boom-season harvest carry a family through the bust.',
-  soilRecovery: 'Ticks for exhausted fertile soil to fully recover (grassland takes twice as long). Farming uses up the nutrients of the tiles it plants; until a tile recovers past 30% it is dormant: no crops, no wild food. Rotting corpses and food put nutrients back.',
+  soilRecovery: 'Ticks for exhausted soil to recover fully next to water (dry land is a little slower). Soil recovers only up to what its moisture supports: rich near water, poor far from it. Farming and grazing use nutrients up; until a tile recovers past 30% it is dormant: no crops, no wild food. Rotting corpses and food put nutrients back, even above the normal level (that extra slowly leaches away).',
   forestSpawn: 'Chance per forest tile per tick (in thousandths) that a wild plant appears. Unlike fertile land and grassland, forest food is NOT reduced in bust: low but steady all year.',
+  treeGrowth: 'How fast trees grow and spread onto neighbouring moist land. At 1, a forest edge creeps forward about one tile a year when nothing stops it. Grazers eating wild plants browse young trees back; farming and building clear them. 0 = forests never grow or spread.',
+  plantSoil: 'Nutrients a wild plant takes from its tile\'s soil as it grows. They go back into the soil if the plant rots, but leave with the eater if it is eaten. So heavily grazed land wears out and stops being fertile, the herd moves on, and the land recovers behind it. 0 = grazing never wears land out.',
   scentFade: 'Plant-eaters leave a scent trail on the tiles they walk; this is how long it takes to fade to half strength. Longer = older trails stay followable, so predators find herds from further away.',
   buildCost: 'Total energy to build one shelter tile, paid over 4 work sessions. 40% cheaper in or next to forest (timber) and 40% cheaper next to an existing shelter (shared walls); both discounts stack. Several relatives can share the work.',
   shelterLife: 'How long a finished shelter lasts with nobody inside (10x longer while occupied). Working on it repairs it. When it falls down it leaves fertile ruins.',

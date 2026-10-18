@@ -2,7 +2,7 @@
 // Save / load the whole world (map, soil, scent, food, simlets with genes + brains, species, history, settings)
 // as one JSON file, so long experiments survive a page reload and can be branched.
 
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;                                     // 4: living land (tree cover); 3 still loads
 const r4 = v => Math.round(v * 1e4) / 1e4;                  // trim floats so the file stays a sensible size
 const packF = arr => Array.from(arr, r4);
 
@@ -22,7 +22,7 @@ const Save = {
       version: SAVE_VERSION, savedAt: new Date().toISOString(),
       params: { ...P }, brainMode: Brain.mode, nextId: NEXT_ID,
       world: {
-        terrain: Array.from(World.terrain).join(''), soil: packF(World.soil), scent: packF(World.scent),
+        terrain: Array.from(World.terrain).join(''), soil: packF(World.soil), trees: packF(World.trees), scent: packF(World.scent),
         iceNoise: packF(World.iceNoise), tilled: [...World.tilled],
       },
       sim: {
@@ -46,15 +46,18 @@ const Save = {
   },
 
   restore(o) {
-    if (!o || o.version !== SAVE_VERSION) throw new Error('Not a Simlets world file (or a newer version)');
+    if (!o || (o.version !== SAVE_VERSION && o.version !== 3)) throw new Error('Not a Simlets world file (or a newer version)');
     // settings first (derived body stats depend on them)
     Object.assign(P, o.params); Brain.mode = o.brainMode || 'hybrid';
-    // map, then the live layers on top of it
-    World.fromJSON(JSON.stringify({ w: WORLD_W, h: WORLD_H, data: o.world.terrain }));
+    // map with its living layers; a version 3 file (painted types, no trees) is converted like an old map file
+    const v4 = o.version >= 4;
+    World.fromJSON(JSON.stringify(v4 ? { w: WORLD_W, h: WORLD_H, v: 2, data: o.world.terrain, trees: o.world.trees, soil: o.world.soil }
+                                     : { w: WORLD_W, h: WORLD_H, data: o.world.terrain }));
     if (o.world.iceNoise) World.iceNoise = Float32Array.from(o.world.iceNoise);
-    Sim.reset();                                            // clears simlets, food, species, history, tilled, soil, scent
-    World.soil.set(o.world.soil); World.scent.set(o.world.scent);
-    World.depleted.clear(); for (let i = 0; i < World.soil.length; i++) if (World.soil[i] < SOIL_MIN) World.depleted.add(i);
+    Sim.reset();                                            // clears simlets, food, species, history, tilled, scent
+    if (!v4) for (let i = 0; i < World.soil.length; i++) World.setSoil(i, Math.min(World.soil[i], o.world.soil[i]));
+    World.scent.set(o.world.scent);
+    World.refreshLand();
     World.tilled = new Map(o.world.tilled);
     Object.assign(Sim, { tick: o.sim.tick, births: o.sim.births, deaths: o.sim.deaths, alarms: o.sim.alarms,
       farmEvents: o.sim.farmEvents, stillborn: o.sim.stillborn, arrivals: o.sim.arrivals, lastImmigration: o.sim.lastImmigration,
