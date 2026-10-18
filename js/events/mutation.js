@@ -15,18 +15,18 @@ function radiationTimeFade(ev) { return clamp(2 * (1 - (Sim.tick - ev.start) / e
 
 defineEvent({
   key: 'mutation', name: 'Radiation', color: '#e45aa8', needsPoint: true,
-  tip: 'A radiation leak at a point (a click, or near a random simlet when automatic). For the leak\'s duration, children conceived within its radius get a higher mutation rate and bigger mutations (genes, and brain weights in Hybrid mode), strongest at the centre, fading to normal at the edge, and fading out over the second half of the leak. Brings genetic variety and new species; many of the oddballs die young.',
+  tip: 'A radiation leak at a point (a click, or near a random simlet when automatic). For the leak\'s duration, children conceived within its radius get a higher mutation rate and bigger mutations (genes, and brain weights in Hybrid mode), strongest at the centre, fading to normal at the edge, and fading out over the second half of the leak. Brings genetic variety and new species; more of these oddballs die young than usual. Its sliders (Radiation section) are read when a leak starts.',
   params: [
-    ['Radiation', 'mutRadius',   'Radiation: radius (tiles)',        3,  40,    1,    20],
-    ['Radiation', 'mutDuration', 'Radiation: duration (ticks)',    200, 12000, 100, 3000],
-    ['Radiation', 'mutRateX',    'Radiation: mutation rate ×',       1,  10,  0.5,    4],
-    ['Radiation', 'mutSizeX',    'Radiation: mutation size ×',       1,   5,  0.1,  2.5],
+    ['Radiation', 'mutRadius',   'Radius (tiles)',                   3,  50,    1,    30],
+    ['Radiation', 'mutDuration', 'Duration (ticks)',               200, 12000, 100, 4000],
+    ['Radiation', 'mutRateX',    'Mutation rate ×',                  1,  10,  0.5,    6],
+    ['Radiation', 'mutSizeX',    'Mutation size ×',                  1,   5,  0.1,    3],
   ],
   tips: {
     mutRadius: 'How far the leak reaches, in tiles. A parent breeding inside it passes the extra mutation to its whole litter; the boost is full at the centre and falls off (1 - (distance/radius)²) to none at the edge.',
     mutDuration: 'How long a leak lasts, in ticks (a year is 6,000). It runs at full strength for the first half, then fades linearly to nothing at the end.',
-    mutRateX: 'Mutation rate multiplier at the centre of the leak (full strength) (the chance each gene, and each brain weight in Hybrid mode, mutates). Capped at 0.5 per gene, the top of the Mutation rate slider.',
-    mutSizeX: 'Mutation size multiplier at the centre of the leak (full strength) (how far a mutated gene or brain weight moves). Capped at the top of the Mutation size (0.3) and Brain mutation size (1) sliders.',
+    mutRateX: 'How much more often each gene (and each brain weight, in Hybrid mode) mutates in a child conceived at the centre while the leak is at full strength. Elsewhere it is 1 + (this - 1) × strength, strength being the distance and time fall-off. Capped at 0.5 per gene, the top of the Mutation rate slider.',
+    mutSizeX: 'How much bigger each mutation is (gene and brain-weight nudges) at the centre while the leak is at full strength, scaled down the same way as the rate. Capped at 0.3 for genes and 1 for brain weights (the tops of the Mutation size and Brain mutation size sliders).',
   },
 
   // automatic leaks happen where simlets are: at a random living simlet (so a crowded area is the likeliest site)
