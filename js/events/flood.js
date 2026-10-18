@@ -23,7 +23,7 @@ const FLOOD_SHELTER_HIT = 0.3;  // shelter health lost when its tile goes under 
 const FLOOD_NOISE = 0.8;        // amplitude of the edge noise, in tiles of reach
 
 defineEvent({
-  key: 'flood', name: 'Flood', color: '#3fa0e8', needsPoint: true,
+  key: 'flood', every: 6000, name: 'Flood', color: '#3fa0e8', needsPoint: true,
   tip: 'Rivers and lakes near a point burst their banks: the water rises over the low land (up to Flood peak reach tiles from the shore, within Flood radius of the point), then slowly recedes. Flooded land grows nothing, its plants, crops and shelter stores spoil, shelters there lose 30% health, and simlets wade (half speed, water cost). As each tile drains it gains silt (Flood silt) and its saplings drown, so the floodplain comes back fertile. Nothing happens if there is no water within reach. Automatic floods wait for the next thaw (last 10% of bust or first 10% of boom), so at most one a year, around a random shore.',
   params: [
     ['Flood', 'floodPeak',     'Flood peak reach (tiles)', 1,  10,   0.5,  4],

@@ -14,7 +14,7 @@ const FAMINE_SOIL_FLOOR = 0.5;    // drying never takes soil below this (so it n
 const FAMINE_SCAN = 100;          // ticks between land-drying / crop checks
 
 defineEvent({
-  key: 'famine', name: 'Famine', color: '#d4a72c', needsPoint: false, every: 0,
+  key: 'famine', name: 'Famine', color: '#d4a72c', needsPoint: false, every: 60000,
   tip: 'A drought: for about Famine length ticks (±25%) wild food on grassland and fertile land grows at Famine severity × its normal rate, forest at Forest food in famine ×, open land dries out (fertile land fades to grassland) and crops sown meanwhile hold less food. Shortage ramps in and out over 300 ticks. Stores and forests are the refuges. Triggering it while one is running extends that one.',
   params: [
     ['Famine', 'famineLength',   'Famine length (ticks)',          500, 20000, 250, 4500],

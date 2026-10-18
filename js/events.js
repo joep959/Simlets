@@ -12,11 +12,12 @@ const EVENT_BY_KEY = {};
 const EVENT_LOG_MAX = 200;      // finished log entries kept (active ones are never dropped)
 
 addParams([['Events', 'eventsOn', 'Automatic events (0 = off, 1 = on)', 0, 1, 1, 1]], {
-  eventsOn: 'Master switch for random events happening by themselves (each at the rate set by its own "every" slider below). 0 = no automatic events. The trigger buttons work either way.',
+  eventsOn: 'Master switch for random events happening by themselves (each at the rate set by its own "every" slider below). 0 = no automatic events. None happen in the first 6,000 ticks (a year), while the founders settle. The trigger buttons work either way.',
 });
 
 // def: { key, name, color, tip, needsPoint, every, params, tips, causes, start, update, end, modify, draw, describe, save, load }
 // (see DESIGN.md §14 for each field). Adds the '<key>Every' frequency slider plus the event's own sliders.
+const EVENT_GRACE = 6000;   // ticks: no automatic events in the first year, while the founders settle
 function defineEvent(def) {
   if (EVENT_BY_KEY[def.key]) throw new Error('Event defined twice: ' + def.key);
   const d = Object.assign({ color: '#e6a23c', tip: '', needsPoint: false, every: 0, params: [], tips: {}, causes: {}, modify: {} }, def);
@@ -71,7 +72,7 @@ const Events = {
 
   // every tick (system, 'post' phase): automatic triggers every 100 ticks, then each active event's update
   update(tick) {
-    if (tick % 100 === 0 && P.eventsOn) for (const def of EVENT_DEFS) {
+    if (tick % 100 === 0 && P.eventsOn && tick >= EVENT_GRACE) for (const def of EVENT_DEFS) {   // none in the first year
       const every = P[def.key + 'Every'];
       if (!(every > 0) || (!def.stack && this.isActive(def.key))) continue;   // no random draw unless it could happen
       if (Math.random() < 100 / every) this.trigger(def.key, this.autoOpts(def));

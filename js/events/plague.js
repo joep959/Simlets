@@ -45,7 +45,7 @@ const Plague = {
 };
 
 defineEvent({
-  key: 'plague', name: 'Plague', color: '#a77bf0', needsPoint: true,
+  key: 'plague', every: 36000, name: 'Plague', color: '#a77bf0', needsPoint: true,
   tip: 'A disease outbreak. Starts in one simlet (the one nearest the click; automatic outbreaks pick a crowded member of the largest species: the one with the most herd-mates close by, of 12 tried at random) plus up to 4 close relatives beside it, and spreads by close contact, mostly to simlets genetically similar to that first case. Sick simlets burn extra energy and may die; survivors become immune for a while (children are born without immunity). The strain weakens over a year, and the outbreak ends when nobody is sick. Sick simlets have a yellow-green ring.',
   params: [
     ['Plague', 'plagueSpread',   'Plague: spread chance',        0, 1,     0.01,  0.5],

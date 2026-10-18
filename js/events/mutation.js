@@ -14,7 +14,7 @@
 function radiationTimeFade(ev) { return clamp(2 * (1 - (Sim.tick - ev.start) / ev.dur), 0, 1); }
 
 defineEvent({
-  key: 'mutation', name: 'Radiation', color: '#e45aa8', needsPoint: true,
+  key: 'mutation', every: 60000, name: 'Radiation', color: '#e45aa8', needsPoint: true,
   tip: 'A radiation leak at a point (a click, or near a random simlet when automatic). For the leak\'s duration, children conceived within its radius get a higher mutation rate and bigger mutations (genes, and brain weights in Hybrid mode), strongest at the centre, fading to normal at the edge, and fading out over the second half of the leak. Brings genetic variety and new species; more of these oddballs die young than usual. Its sliders (Radiation section) are read when a leak starts.',
   params: [
     ['Radiation', 'mutRadius',   'Radius (tiles)',                   3,  50,    1,    30],

@@ -341,6 +341,8 @@ NEAT-style clustering:
   - **Dynamic water:** simlets divert water, dig channels or irrigation, and build reservoirs, so water itself becomes part of the living land (moisture already follows water automatically).
   - **Building synergies:** more bonuses between structures (e.g. granary + fields, houses + wells, walls + fields), so settlements become more than the sum of their parts.
   - **Noted in playtest (Oct 2026):** little visible migration; a plant-eater monoculture took over early and held (immigrants short-lived; plague is the planned counter); full-energy simlets often still choose to eat (wasted bites); late-game slowdown from population size (a performance pass on sensing is due).
+  - **Random events:** built (§14f). To do: separate reviews of plague, fire, bounty and radiation; a targeted plague-vs-monoculture test.
+  - **Moisture bug (§14e):** fix the BFS queue size, then retune the land (§9j).
   - **Meta-optimisation:** an outer optimiser (GA, CMA-ES or Bayesian optimisation) tunes world parameters using headless runs, scored on carnivores persisting alongside herbivores. Do it after the land rework, which resets the balance anyway.
 
 ## 14. Framework: tile table, systems and events (Oct 2026)
@@ -440,6 +442,31 @@ defineEvent({
 ### 14d. Charts
 
 **Land over time** (fifth chart): the share of land that is fertile / grassland / forest, sampled into `Sim.history.land` (one array per sample, indexed by terrain type) with the other series, so it follows the history window and halving and is saved with history. Saves from before it show a gap.
+
+### 14f. The six events (Oct 2026)
+
+Defaults: automatic events on, none in the first 6,000 ticks; frequency = average ticks between automatic occurrences (a 100/every chance every 100 ticks; an event that is already running is never auto-triggered again).
+
+| Event | Default every | What it does (see each file's header for exact numbers) |
+|---|---|---|
+| Plague | 36,000 | Patient zero = a crowded member of the largest species; strain = its genome. Every 25 ticks each sick simlet infects others within range with chance plagueSpread × similarity(strain, host)² × (1 − 0.8·resistance), fading to 0 over 6,000 ticks. Sick: extra idle drain and a death risk (cause 'disease'); then immunity. New **Resistance** gene (costs idle drain). |
+| Fire | 4,000 | Starts in forest/scrub; spreads to neighbours by fuel (trees), dryness and season; burnt tiles lose their trees and gain ash soil; food on them is destroyed, simlets lose energy (cause 'fire'), shelters lose health. Ash tint fades. |
+| Flood | 6,000 | Only at the thaw. Regional: land around a water body goes under in order of distance to water (+ noise), rising fast then receding; food and stores spoil, nothing grows, movement is wet; silt on recede. |
+| Famine | 60,000 | Wild food ×0.3 on open land, ×0.75 in forest (ramped); open land dries (soil −0.03 per 100 ticks, floored), crops sown during it hold half their energy. Never stacks; a manual trigger extends it. |
+| Bounty | 36,000 | Wild food up (default ×2), forest most, ramped in and out, plus a forest windfall at the start. All extra energy enters as ordinary wild plants. |
+| Radiation | 60,000 | A leak at a point: children conceived within the radius get higher mutation rate and size (genes, and brain weights in Hybrid), strongest at the centre, fading out over the second half. Marked 'Mutant' while it lasts. |
+
+Built in parallel by six agents on branches event-<key>; flood and famine were adversarially reviewed (both passed, minors only); plague, fire, bounty and radiation were not separately reviewed (usage limits) and could be later.
+
+**Combined test (seeds 11/12/13, 40k ticks, all defaults; "off" = eventsOn 0):**
+
+| | Lowest population | Species alive at 40k | Events that fired |
+|---|---|---|---|
+| Events off | 115 / 20 / 45 | 8 / 7 / 10 | – |
+| Events on (first try: no grace year, famine every 48k) | 36 / 12 / 45 | 10 / 12 / 4 | seed 11 had 3 famines, the first at tick 100 |
+| **Events on (final: grace year, famine every 60k)** | **115 / 16 / 34** | **8 / 9 / 6** | 9–12 per run: 2–5 fires, 2–3 floods, 1–2 plagues, 0–2 famines and bounties, 0–1 radiation |
+
+No extinctions. Effects on diversity are within the seed noise at this length; plague's effect on monocultures needs a targeted, longer test.
 
 ### 14e. Known bug found while building this (not fixed)
 

@@ -25,7 +25,7 @@ function bountyPeak(ev, type) { return TERRAIN_INFO[type].forest ? ev.boost * ev
 function bountyMult(ev, type, tick) { return 1 + (bountyPeak(ev, type) - 1) * bountyShape(ev, tick); }
 
 defineEvent({
-  key: 'bounty', name: 'Bounty', color: '#62cf72', needsPoint: false,
+  key: 'bounty', every: 36000, name: 'Bounty', color: '#62cf72', needsPoint: false,
   tip: 'A bumper season (mast year): wild food grows faster everywhere for a while, forest food most, and the forest drops a windfall of plants at the start. It ramps up over the first 10% of the event and fades over the last 30%. The extra food is ordinary wild plants: tile cap, dormant soil and floods still limit it, and each plant still draws soil nutrients, so heavy growth can wear land out. Expect a breeding boom and then a crash when it ends.',
   params: [
     ['Bounty', 'bountyBoost',    'Food growth ×',            1, 5,     0.1, 2],

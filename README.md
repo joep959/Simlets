@@ -53,7 +53,14 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 
 ## Events
 
-Random events shake the world up: **plague, fire, flood, famine, bounty and radiation** (raised mutation). The framework is in place but the events themselves are placeholders for now: triggering one only marks it on the log and the Population chart. Each can be triggered from the **Events** panel (those ending in … then need a click on the map; Esc cancels) or happen by itself: **Events → Automatic events** plus a per-event "every" slider (0 = never, the default). The inspector's **Status** line shows what running events are doing to a simlet.
+Random events shake the world up. Each can be triggered from the **Events** panel (those ending in … then need a click on the map; Esc cancels) or happens by itself (**Events → Automatic events**, on by default, plus a per-event "every" slider; 0 = never). Running events show as faint bands on the Population chart, in the event log, and on the inspector's **Status** line.
+
+- **Plague** (about every 6 years): spreads by contact, far faster between close relatives, so it hits the commonest species hardest and breaks up monocultures. Sick simlets drain energy and can die; survivors are immune for a while. The new **Resistance** gene protects, at an energy cost.
+- **Fire** (often, in the dry boom season): spreads through forest and scrub, kills trees, damages simlets and shelters in its path, and leaves rich ash. It keeps the slow forest spread in check.
+- **Flood** (at the thaw, about 2 years in 3): water rises over the lowlands around a lake or river, spoils food and stores, then recedes leaving fertile silt.
+- **Famine** (drought, about every 8 years): wild food falls to 30% on open land (forest is the refuge), fertile land dries out, and crops yield half. Stores and thrift pay off.
+- **Bounty** (a mast year, about every 6 years): wild food doubles for a while, forest most, with a windfall at the start. Expect a baby boom and then a crash.
+- **Radiation** (about every 10 years): a leak at a point; children conceived nearby mutate far more for a while, so new varieties and species appear.
 
 ## Brains
 
