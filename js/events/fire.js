@@ -68,7 +68,7 @@ const Fire = {
 };
 
 defineEvent({
-  key: 'fire', every: 4000, name: 'Fire', color: '#ef5b3c', needsPoint: true,
+  key: 'fire', every: 15000, name: 'Fire', color: '#ef5b3c', needsPoint: true,
   tip: `A wildfire. Automatic fires start in a random forest tile (else scrub); in bust only ${FIRE_BUST_START * 100}% of them take hold, so they come mostly in the dry boom. The button lights one where you click. Every ${FIRE_STEP} ticks each burning tile may set its 8 neighbours alight: likelier the more trees they have, less on moist land near water and in bust; bare ground, water and floodwater stop it, and shelters burn like scrub. A tile burns ${FIRE_BURN}-${2 * FIRE_BURN} ticks, then its trees are gone and ash enriches its soil. Food on burning tiles is destroyed, simlets standing in it lose energy fast, and shelters lose health until they collapse. Burnt ground stays dark for a while.`,
   params: [
     ['Fire', 'fireSpread', 'Fire spread chance',         0, 1,    0.01,  0.25],

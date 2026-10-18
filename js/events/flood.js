@@ -19,12 +19,13 @@
 // next thaw (the last 10% of bust or the first 10% of boom), around a random shore; at most one per thaw.
 // Energy: floods only destroy food energy (spoiled plants, crops and stores); silt is soil nutrients, not energy.
 
-const FLOOD_SHELTER_HIT = 0.3;  // shelter health lost when its tile goes under (0..1; repaired by building work)
+const FLOOD_SHELTER_HIT = 0.7;  // shelter health lost when its tile goes under (0..1; repaired by building work)
+const FLOOD_TREE_KILL = 0.6;    // share of tree cover drowned on a flooded tile (saplings outside forest all die)
 const FLOOD_NOISE = 0.8;        // amplitude of the edge noise, in tiles of reach
 
 defineEvent({
-  key: 'flood', every: 6000, name: 'Flood', color: '#3fa0e8', needsPoint: true,
-  tip: 'Rivers and lakes near a point burst their banks: the water rises over the low land (up to Flood peak reach tiles from the shore, within Flood radius of the point), then slowly recedes. Flooded land grows nothing, its plants, crops and shelter stores spoil, shelters there lose 30% health, and simlets wade (half speed, water cost). As each tile drains it gains silt (Flood silt) and its saplings drown, so the floodplain comes back fertile. Nothing happens if there is no water within reach. Automatic floods wait for the next thaw (last 10% of bust or first 10% of boom), so at most one a year, around a random shore.',
+  key: 'flood', every: 30000, name: 'Flood', color: '#3fa0e8', needsPoint: true,
+  tip: 'Rivers and lakes near a point burst their banks: the water rises over the low land (up to Flood peak reach tiles from the shore, within Flood radius of the point), then slowly recedes. Flooded land grows nothing: its plants and crops spoil, fields are washed out, unfinished foundations are swept away, houses lose their stores and 70% of their health (worn ones collapse into ruins), and simlets wade (half speed, water cost). As each tile drains it gains silt (Flood silt), its saplings drown and forest loses 60% of its trees (usually turning to open land), so the floodplain comes back bare but fertile. Nothing happens if there is no water within reach. Automatic floods wait for the next thaw (last 10% of bust or first 10% of boom), so at most one a year, around a random shore.',
   params: [
     ['Flood', 'floodPeak',     'Flood peak reach (tiles)', 1,  10,   0.5,  4],
     ['Flood', 'floodDuration', 'Flood duration (ticks)',   300, 4000, 100, 1200],
@@ -50,7 +51,7 @@ defineEvent({
     }
     ev.peak = P.floodPeak; ev.dur = P.floodDuration; ev.R = P.floodRadius;
     ev.ox = (Math.random() * WORLD_W) | 0; ev.oy = (Math.random() * WORLD_H) | 0;   // which part of the noise to use
-    ev.stats = { flooded: 0, spoiled: 0, shelters: 0, silted: 0 };
+    ev.stats = { flooded: 0, spoiled: 0, shelters: 0, silted: 0, fields: 0, foundations: 0, trees: 0 };
     Flood.build(ev);
     if (!ev.n) return false;                                               // no water nearby: nothing to flood
     Events.note(ev, `rising: up to ${ev.peak} tiles from the shore, ${ev.n} tiles at risk`);
@@ -117,9 +118,11 @@ const Flood = {
     ev.order = Int32Array.from(cand, c => c[1]); ev.levels = Float32Array.from(cand, c => c[0]);
   },
 
-  // a tile goes under: plants and crops spoil, a shelter's store spoils and it takes damage
+  // a tile goes under: plants and crops spoil, fields are washed out, a shelter's store spoils and it takes heavy
+  // damage, and an unfinished foundation is swept away
   flood(ev, i) {
     World.setFlood(i, true); ev.stats.flooded++;
+    if (World.tilled.has(i)) { World.tilled.delete(i); ev.stats.fields++; }
     this.spoil(ev, i, true);
   },
   spoil(ev, i, first) {
@@ -135,20 +138,26 @@ const Flood = {
     const sh = Shelters.tiles.get(i);
     if (sh) {
       if (sh.store > 0) { ev.stats.spoiled += sh.store; World.addNutrients(sh.x, sh.y, sh.store * SOIL_PER_ENERGY); sh.store = 0; }
-      if (first) { sh.health -= FLOOD_SHELTER_HIT; ev.stats.shelters++; }   // collapses at the next shelter update if <= 0
+      if (first && !sh.done) { sh.progress = 0; ev.stats.foundations++; }        // swept away (removed at the next shelter update)
+      else if (first) { sh.health -= FLOOD_SHELTER_HIT; ev.stats.shelters++; }    // collapses into a ruin at the next update if <= 0
     }
   },
-  // the water leaves: silt enriches the soil, saplings have drowned
+  // the water leaves: silt enriches the soil, saplings have drowned and most forest trees too
   drain(ev, i) {
     World.setFlood(i, false);
     if (World.terrain[i] === TERRAIN.WATER) return;                        // painted over with water meanwhile
     if (P.floodSilt > 0 && World.soil[i] < 1) World.setSoil(i, World.soil[i] + P.floodSilt);
-    if (!TERRAIN_INFO[World.terrain[i]].forest && World.trees[i] > 0) World.clearTrees(i);
+    if (World.trees[i] > 0) {
+      if (!TERRAIN_INFO[World.terrain[i]].forest) World.clearTrees(i);
+      else World.trees[i] *= 1 - FLOOD_TREE_KILL;                         // drowned woodland: usually stops being forest
+      ev.stats.trees++;
+    }
     ev.stats.silted++;
   },
   summary(ev) {
     const s = ev.stats;
-    return `, ${Math.round(s.spoiled)} food energy spoiled` + (s.shelters ? `, ${s.shelters} shelter tiles hit` : '') + (s.silted ? `, ${s.silted} tiles silted` : '');
+    return `, ${Math.round(s.spoiled)} food energy spoiled` + (s.fields ? `, ${s.fields} fields washed out` : '') + (s.shelters ? `, ${s.shelters} houses hit` : '') +
+           (s.foundations ? `, ${s.foundations} foundations swept away` : '') + (s.trees ? `, trees drowned on ${s.trees} tiles` : '') + (s.silted ? `, ${s.silted} tiles silted` : '');
   },
 
   // the thaw: the last 10% of bust or the first 10% of boom (snowmelt)

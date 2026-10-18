@@ -135,6 +135,30 @@ const UI = {
     // the map canvas follows its box (drawer, panels and chart strip all change it), not just the window
     new ResizeObserver(() => Render.resize()).observe($('mapWrap'));
     $('paramSearch').oninput = e => this.filterParams(e.target.value);
+    // phones: drag a bottom sheet down to close it (from its handle, or anywhere while it is scrolled to the top);
+    // a drag that starts upwards scrolls the sheet as normal
+    for (const sheet of [$('left'), $('right')]) {
+      let y0 = null, dy = 0;
+      sheet.addEventListener('touchstart', e => {
+        if (!this.mobile || e.touches.length !== 1) { y0 = null; return; }
+        const y = e.touches[0].clientY;
+        y0 = sheet.scrollTop <= 0 || y - sheet.getBoundingClientRect().top < 32 ? y : null; dy = 0;
+      }, { passive: true });
+      sheet.addEventListener('touchmove', e => {
+        if (y0 === null) return;
+        dy = e.touches[0].clientY - y0;
+        if (dy <= 0) { y0 = null; sheet.style.transform = ''; return; }    // going up: a normal scroll
+        e.preventDefault();
+        sheet.style.transition = 'none'; sheet.style.transform = `translateY(${dy}px)`;
+      }, { passive: false });
+      const end = () => {
+        if (y0 === null && !sheet.style.transform) return;
+        y0 = null; sheet.style.transition = 'transform 0.15s'; sheet.style.transform = '';
+        if (dy > 70) this.setLayout(sheet.id === 'left' ? { left: false } : { right: false });
+        dy = 0;
+      };
+      sheet.addEventListener('touchend', end); sheet.addEventListener('touchcancel', end);
+    }
     this.setLayout({});
   },
   setLayout(change) {

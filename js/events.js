@@ -23,7 +23,7 @@ function defineEvent(def) {
   const d = Object.assign({ color: '#e6a23c', tip: '', needsPoint: false, every: 0, params: [], tips: {}, causes: {}, modify: {} }, def);
   EVENT_DEFS.push(d); EVENT_BY_KEY[d.key] = d;
   const fk = d.key + 'Every';
-  addParams([['Events', fk, `${d.name}: every (ticks)`, 0, 60000, 500, d.every], ...d.params], Object.assign({
+  addParams([['Events', fk, `${d.name}: every (ticks)`, 0, 120000, 1000, d.every], ...d.params], Object.assign({
     [fk]: `${d.name}: average number of ticks between automatic occurrences (a chance is rolled every 100 ticks; a year is 6,000 ticks at default settings). 0 = never by itself. Needs Automatic events on. ${d.tip}`,
   }, d.tips));
   Object.assign(Events.causeLabels, d.causes);

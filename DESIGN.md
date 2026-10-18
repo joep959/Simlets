@@ -448,16 +448,18 @@ Defaults: automatic events on, none in the first 6,000 ticks; frequency = averag
 
 | Event | Default every | What it does (see each file's header for exact numbers) |
 |---|---|---|
-| Plague | 36,000 | Patient zero = a crowded member of the largest species; strain = its genome. Every 25 ticks each sick simlet infects others within range with chance plagueSpread × similarity(strain, host)² × (1 − 0.8·resistance), fading to 0 over 6,000 ticks. Sick: extra idle drain and a death risk (cause 'disease'); then immunity. New **Resistance** gene (costs idle drain). |
-| Fire | 4,000 | Starts in forest/scrub; spreads to neighbours by fuel (trees), dryness and season; burnt tiles lose their trees and gain ash soil; food on them is destroyed, simlets lose energy (cause 'fire'), shelters lose health. Ash tint fades. |
-| Flood | 6,000 | Only at the thaw. Regional: land around a water body goes under in order of distance to water (+ noise), rising fast then receding; food and stores spoil, nothing grows, movement is wet; silt on recede. |
-| Famine | 60,000 | Wild food ×0.3 on open land, ×0.75 in forest (ramped); open land dries (soil −0.03 per 100 ticks, floored), crops sown during it hold half their energy. Never stacks; a manual trigger extends it. |
-| Bounty | 36,000 | Wild food up (default ×2), forest most, ramped in and out, plus a forest windfall at the start. All extra energy enters as ordinary wild plants. |
-| Radiation | 60,000 | A leak at a point: children conceived within the radius get higher mutation rate and size (genes, and brain weights in Hybrid), strongest at the centre, fading out over the second half. Marked 'Mutant' while it lasts. |
+| Plague | 48,000 | Patient zero = a crowded member of the largest species; strain = its genome. Every 25 ticks each sick simlet infects others within range with chance plagueSpread × similarity(strain, host)² × (1 − 0.8·resistance), fading to 0 over 6,000 ticks. Sick: extra idle drain and a death risk (cause 'disease'); then immunity. New **Resistance** gene (costs idle drain). |
+| Fire | 15,000 | Starts in forest/scrub; spreads to neighbours by fuel (trees), dryness and season; burnt tiles lose their trees and gain ash soil; food on them is destroyed, simlets lose energy (cause 'fire'), shelters lose health. Ash tint fades. |
+| Flood | 30,000 | Only at the thaw. Regional: land around a water body goes under in order of distance to water (+ noise), rising fast then receding. Going under: food and stores spoil, fields (tilled tiles) wash out, foundations are swept away, houses lose 70% health (worn ones collapse into ruins). Nothing grows; movement is wet. Draining: silt, saplings die, forest loses 60% of its trees. Test: aimed at villages, one flood washed out 65 fields, ruined 4 of 11 houses and drowned trees on 63 tiles. |
+| Famine | 72,000 | Wild food ×0.3 on open land, ×0.75 in forest (ramped); open land dries (soil −0.03 per 100 ticks, floored), crops sown during it hold half their energy. Never stacks; a manual trigger extends it. |
+| Bounty | 48,000 | Wild food up (default ×2), forest most, ramped in and out, plus a forest windfall at the start. All extra energy enters as ordinary wild plants. |
+| Radiation | 90,000 | A leak at a point: children conceived within the radius get higher mutation rate and size (genes, and brain weights in Hybrid), strongest at the centre, fading out over the second half. Marked 'Mutant' while it lasts. |
 
 Built in parallel by six agents on branches event-<key>; flood and famine were adversarially reviewed by agents (both passed, minors only). Plague, fire, bounty and radiation were then checked with a stress harness (each triggered on 2 seeded maps: no exceptions, NaN or out-of-range energy/soil/trees, every event ended, save/load mid-event kept it running, per-tick cost normal) plus a read-through of each file for energy conservation and logic: no bugs found. Design gap: simlets don't sense fire, so they don't flee it (deaths were low: 17 in 40k ticks).
 
-**Combined test (seeds 11/12/13, 40k ticks, all defaults; "off" = eventsOn 0):**
+**Rates retuned after Joe's playtest ("far too often, always flooding"):** frequencies above are the new defaults, with the slider max raised to 120,000. Over 40k ticks on seeds 11/12/13 that gives 2–5 events per run (it was 9–12), and lowest populations of 52 / 25 / 49. With fewer fires, forest creeps a little more: 27 / 44 / 24% at 40k, against 46% on seed 12 with events off.
+
+**Combined test (seeds 11/12/13, 40k ticks, all defaults; "off" = eventsOn 0):** (first rates, before the retune)
 
 | | Lowest population | Species alive at 40k | Events that fired |
 |---|---|---|---|
