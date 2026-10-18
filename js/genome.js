@@ -1,5 +1,5 @@
 'use strict';
-// The chromosome: 27 genes, each stored 0..1 and scaled to a real quantity in simlet.js.
+// The chromosome: 28 genes, each stored 0..1 and scaled to a real quantity in simlet.js.
 
 const GENES = [
   { key: 'size', group: 'Body', label: 'Size',
@@ -56,6 +56,9 @@ const GENES = [
     tip: 'Chance each breeding is sexual rather than asexual. Sexual: needs a compatible mate, partners share the cost, and the child mixes both genomes. Asexual: no mate needed, the parent pays the whole cost, and the child is a mutated clone. If no mate turns up within 300 ticks, it breeds asexually anyway.' },
   { key: 'choosiness', group: 'Breeding', label: 'Choosiness',
     tip: 'How genetically similar a mate must be (30% to 95%). Picky simlets find fewer mates, but pickiness is what lets populations split into separate species.' },
+  // appended last so the colour and pattern projections of the older genes stay as they were
+  { key: 'resistance', group: 'Health', label: 'Resistance',
+    tip: 'Disease resistance: cuts the chance of catching plague from a contact by up to 80% (at 1). It does not shorten the illness or lower its death chance. Cost: a little extra idle drain (+0.25 × gene on the drain multiplier), so it only pays where plague strikes.' },
 ];
 const NG = GENES.length;
 const G = {};                      // gene key -> index, e.g. g[G.size]
