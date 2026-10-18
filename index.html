@@ -2,37 +2,63 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15171a">
 <title>Simlets</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="app">
-  <!-- Left: controls -->
+  <!-- Top bar: transport, clock, at-a-glance numbers, layout toggles -->
+  <header id="topbar">
+    <span class="brand">Simlets</span>
+    <button id="btnPlay" class="btn primary tbplay" data-tip="Play / pause (Space)">❚❚</button>
+    <button id="btnStep" class="btn tbbtn" data-tip="Advance one tick (while paused)">Step</button>
+    <div class="tbspeed" data-tip="Simulation speed: ticks per drawn frame. Max runs as many as fit in each frame.">
+      <input id="speed" type="range" min="0" max="10" step="1" value="2"><span id="speedLbl" class="val">×1</span>
+    </div>
+    <div class="tbclock" data-tip="Day number (a day is the Day length slider) and the tick count. The bar shows progress through the current season.">
+      <span id="dayIcon">☀</span> Day <b id="dayNum">0</b> <span class="muted">t<span id="tickNum">0</span></span>
+      <span class="season"><span id="seasonName">BOOM</span><span class="bar"><span id="seasonBar"></span></span></span>
+    </div>
+    <div id="glance" class="glance"></div>
+    <div id="evChips" class="evchips"></div>
+    <span class="tbspacer"></span>
+    <button id="btnCharts" class="btn tbicon" data-tip="Charts: full / titles only (C)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-6M2 20h20"/></svg></button>
+    <button id="btnRight" class="btn tbicon" data-tip="Inspector and species list (])"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+    <button id="btnFull" class="btn tbicon" data-tip="Full screen: just the map and a small summary (F; Esc or F to leave)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+  </header>
+
+  <!-- Icon rail: picks which section the left drawer shows; clicking the open one closes the drawer -->
+  <nav id="rail">
+    <button class="railbtn" data-pane="sim" data-tip="Simulation: brain mode, air-drop, restart, save and load, live statistics ([ toggles the drawer)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></button>
+    <button class="railbtn" data-pane="map" data-tip="Map: run or edit, brushes, new / random / saved maps"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg></button>
+    <button class="railbtn" data-pane="events" data-tip="Events: trigger plague, fire, flood, famine, bounty or radiation, and the event log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button>
+    <button class="railbtn" data-pane="settings" data-tip="Settings: every world slider, with search"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
+    <button class="railbtn mobile-only" id="railRight" data-tip="Inspector and species list"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+  </nav>
+
+  <!-- Left drawer -->
   <aside id="left" class="panel">
-    <h1>Simlets</h1>
-
-    <section class="block">
-      <div class="row">
-        <button id="btnPlay" class="btn primary" title="Space">❚❚ Pause</button>
-        <button id="btnStep" class="btn" title="Advance one tick">Step</button>
+    <section class="pane" data-pane="sim">
+      <h3>Simulation</h3>
+      <div class="seg" data-tip="Rules: simlets decide with the hand-written score formulas only. Hybrid: a small neural network (a second chromosome) adds a learned correction to each score. Brains start at zero, so behaviour is unchanged at first; while Hybrid is on, brains mutate and evolve and can come to override the rules.">
+        <button id="brainRules" class="segbtn">Brain: rules</button>
+        <button id="brainHybrid" class="segbtn on">Hybrid</button>
       </div>
-      <label class="lbl">Speed <span id="speedLbl" class="val">×1</span></label>
-      <input id="speed" type="range" min="0" max="10" step="1" value="2">
-    </section>
-
-    <section class="block">
-      <div class="clock">
-        <div><span id="dayIcon">☀</span> Day <span id="dayNum">0</span></div>
-        <div class="muted">tick <span id="tickNum">0</span></div>
+      <button id="btnDrop" class="btn wide" data-tip="Then click on the map: a new tribe lands there, with random genes but the brain of a living simlet with a similar diet. Esc cancels.">Air-drop tribe…</button>
+      <button id="btnReseed" class="btn wide">Restart simulation</button>
+      <div class="row" style="margin-top:6px">
+        <button id="worldSave" class="btn sm" style="flex:1" data-tip="Download the whole world (map, soil, food, every simlet with its genes and brain, species, history and settings) as a file.">Save world…</button>
+        <button id="worldLoad" class="btn sm" style="flex:1" data-tip="Load a saved world file and carry on exactly where it left off (paused).">Load world…</button>
+        <input id="worldFile" type="file" accept=".json" class="hidden">
       </div>
-      <div class="season"><span id="seasonName">BOOM</span>
-        <div class="bar"><div id="seasonBar"></div></div>
-      </div>
+      <h3>Statistics</h3>
       <div class="stats" id="stats"></div>
     </section>
 
-    <section class="block">
+    <section class="pane" data-pane="map">
+      <h3>Map</h3>
       <div class="seg">
         <button id="modeRun" class="segbtn on">Run</button>
         <button id="modeEdit" class="segbtn">Edit map</button>
@@ -48,34 +74,34 @@
           <button id="mapLoad" class="btn sm">Load…</button>
           <input id="mapFile" type="file" accept=".json" class="hidden">
         </div>
-        <p class="hint">Left-drag paints, right-drag pans. Paint water and land; fertile land, grassland and forest then form by themselves (moist land near water gets rich soil, forests spread). Plant forest and Enrich soil are godly nudges and work mid-run too (switch to Edit map; the clock pauses). Clear, Random and Load also wipe the population: press Run to drop in fresh tribes.</p>
+        <p class="hint">Drag to paint (right-drag or two fingers to pan). Paint water and land; fertile land, grassland and forest then form by themselves (moist land near water gets rich soil, forests spread). Plant forest and Enrich soil are godly nudges and work mid-run too (switch to Edit map; the clock pauses). Clear, Random and Load also wipe the population: press Run to drop in fresh tribes.</p>
       </div>
-      <div class="seg" style="margin-top:10px" data-tip="Rules: simlets decide with the hand-written score formulas only. Hybrid: a small neural network (a second chromosome) adds a learned correction to each score. Brains start at zero, so behaviour is unchanged at first; while Hybrid is on, brains mutate and evolve and can come to override the rules.">
-        <button id="brainRules" class="segbtn">Brain: rules</button>
-        <button id="brainHybrid" class="segbtn on">Hybrid</button>
-      </div>
-      <button id="btnDrop" class="btn wide" data-tip="Then click on the map: a new tribe lands there, with random genes but the brain of a living simlet with a similar diet. Esc cancels.">Air-drop tribe…</button>
-      <button id="btnReseed" class="btn wide">Restart simulation</button>
-      <div class="row" style="margin-top:6px">
-        <button id="worldSave" class="btn sm" style="flex:1" data-tip="Download the whole world (map, soil, food, every simlet with its genes and brain, species, history and settings) as a file.">Save world…</button>
-        <button id="worldLoad" class="btn sm" style="flex:1" data-tip="Load a saved world file and carry on exactly where it left off (paused).">Load world…</button>
-        <input id="worldFile" type="file" accept=".json" class="hidden">
-      </div>
+      <p class="hint" id="runHint">Edit map to paint water, land, forest and rich soil. Run carries on (or drops tribes onto a fresh map).</p>
     </section>
 
-    <section class="block" id="eventsBlock">
-      <h3 data-tip="Random events: disturbances and windfalls. Each can happen by itself (Automatic events and the per-event 'every' sliders, under Events in the settings below) or be triggered with these buttons. Buttons ending in … then need a click on the map (Esc cancels). Faint bands on the Population chart mark when each event ran.">Events <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· click to trigger</span></h3>
+    <section class="pane" data-pane="events" id="eventsBlock">
+      <h3 data-tip="Random events: disturbances and windfalls. Each can happen by itself (Automatic events and the per-event 'every' sliders, under Events in Settings) or be triggered with these buttons. Buttons ending in … then need a click on the map (Esc cancels). Faint bands on the Population chart mark when each event ran.">Events <span class="muted lc">· click to trigger</span></h3>
       <div id="eventBtns" class="evbtns"></div>
+      <h3>Recent</h3>
       <div id="eventLog" class="evlog" data-tip="Most recent events first, with the tick each started and ended. Hover an entry for its details."></div>
     </section>
 
-    <section class="block" id="params"></section>
+    <section class="pane" data-pane="settings">
+      <h3>Settings</h3>
+      <input id="paramSearch" class="search" type="search" placeholder="Search settings…" autocomplete="off">
+      <div id="params"></div>
+    </section>
   </aside>
 
   <!-- Centre: map + charts -->
   <main id="centre">
     <div id="mapWrap">
       <canvas id="map"></canvas>
+      <div id="hud" class="hidden">
+        <div class="hudrow"><button id="hudPlay" class="btn primary tbplay">❚❚</button><span id="hudClock"></span><button id="hudExit" class="btn tbicon" data-tip="Leave full screen (F or Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button></div>
+        <div id="hudGlance" class="glance"></div>
+        <div id="hudEvents" class="evchips"></div>
+      </div>
       <div id="extinct" class="hidden">Extinct. <button id="btnReseed2" class="btn primary">Restart</button></div>
       <div id="legend" class="collapsed">
         <button id="legendBtn" class="btn sm">Key ▸</button>
@@ -137,7 +163,7 @@
     <div id="itip" class="hidden"></div>
   </main>
 
-  <!-- Right: inspector -->
+  <!-- Right: inspector / species list -->
   <aside id="right" class="panel">
     <div id="inspector"><p class="hint">Click a simlet to inspect its genome.</p></div>
   </aside>

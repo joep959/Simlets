@@ -8,6 +8,13 @@ It's a play and learning project about genetic algorithms, agent-based simulatio
 
 Double-click `index.html`. There's nothing to install and no server; it runs in Edge or Chrome straight from the folder.
 
+**On your phone:** serve the folder from the PC and open it on the phone over the same Wi-Fi:
+1. On the PC, in the project folder: `python -m http.server 8000`. Allow it through the Windows firewall when asked (private networks).
+2. Find the PC's address with `ipconfig` (the IPv4 address, e.g. 192.168.1.20).
+3. On the phone, open `http://192.168.1.20:8000`.
+
+The simulation runs on the phone (the PC only hands over the files), so phones start with a lower population cap (600; the slider still goes higher). On a phone: tap a simlet to inspect it, drag to pan, pinch to zoom, use the bottom tabs for the sections, tap empty map to close a sheet, and press and hold anything for its explanation.
+
 ## Quick start
 
 1. The app opens on a **blank, dry map** in **Edit map** mode (or press **Random** for a ready-made one).
@@ -19,10 +26,14 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 
 | Area | What's there |
 |---|---|
-| **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Events** (trigger buttons and a log of recent events), **Save world… / Load world…** (the whole world as a file, so experiments survive reloads), **Restore default settings**, and all world sliders (hover a slider for what it does) |
-| **Map** | Scroll to zoom, drag to pan, click a simlet to select it. The map key is collapsed under **Key ▸**. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
+| **Top bar** | Play/pause, Step, speed, day, tick and season, then the **at-a-glance** numbers: population (● herbivores ◆ omnivores ▲ carnivores), species, fertile and forest share, and a chip for each running event. On the right: charts, right panel and **full screen** buttons |
+| **Icon rail + drawer (left)** | Four sections, one at a time: **Simulation** (brain rules / Hybrid, air-drop, restart, save / load world, full statistics), **Map** (run / edit, brushes, new / random / saved maps), **Events** (trigger buttons and the event log), **Settings** (every slider, with a **search box**; a dot marks sliders changed from their default). Click the open section's icon again to close the drawer |
+| **Map** | Scroll or pinch to zoom, drag (or two fingers) to pan, click or tap a simlet to select it. The map key is collapsed under **Key ▸**. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
 | **Right panel** | Nothing selected: the **species list**. Simlet selected: **Highlight Family / Species** (gold parents, teal children, white siblings, lilac species-mates; click an ID to jump to it), vitals, body stats, brain and all genes |
-| **Bottom charts** | Population by diet (with faint bands where events ran) · Species over time · Mean of any gene ± spread · Land over time (fertile / grassland / forest share) · Diet histogram. They show the last 30,000 ticks by default (**Display → Chart history**; 0 = the whole run) |
+| **Charts (bottom)** | Population by diet (with faint bands where events ran) · Species over time · Mean of any gene ± spread · Land over time (fertile / grassland / forest share) · Diet histogram. They show the last 30,000 ticks by default (**Display → Chart history**; 0 = the whole run). **⤢** expands any chart over the map; the chart button in the top bar shrinks the strip to titles only (click a title to expand that chart). |
+| **Full screen** | Just the map and a small summary (play/pause, day, season, numbers, events). Press **F** or the button; **F** or **Esc** leaves |
+
+**Keyboard:** Space = play/pause · **[** = drawer · **]** = right panel · **C** = charts · **F** = full screen · Esc = cancel / close an expanded chart. The layout you choose is remembered.
 
 **Reading a simlet on the map**
 - Shape shows diet: green round teardrop = herbivore, blue diamond = omnivore, orange arrowhead = carnivore.

@@ -15,6 +15,8 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
   - `Brain` (`Brain.mode` = 'rules' | 'hybrid')
   - `Render`, `Charts`, `UI`
 - The simulation is decoupled from drawing: `main.js` runs N `Sim.step()` calls per animation frame.
+- **UI shell** (ui.js `initShell` / `setLayout`): body classes `left-closed`, `right-closed`, `charts-mini`, `fs` drive the CSS grid. Drawer sections are `.pane[data-pane]` picked by the rail. The layout is saved in localStorage (`simlet-layout`, phones `simlet-layout-m`).
+- **Phones:** below 760px wide, the rail becomes a bottom tab bar and the drawer and inspector become bottom sheets (one at a time). Map input is pointer events (mouse, touch, pinch), and tips are press-and-hold. Touch phones start with maxPop 600 (a default, not a cap).
 
 ## Conventions
 
@@ -43,6 +45,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
   - Use a separate `--user-data-dir` per run, and never `taskkill` msedge broadly (Joe's own browser is open).
   - Files are CRLF. Deleting a whole line with an edit can merge the neighbouring lines and silently break the page. After editing, run `node --check` on every `js/*.js`.
   - For paired comparisons, seed `Math.random` in the Node VM context, so every setting runs on the same maps.
+  - Headless Edge won't go narrower than about 492px CSS: a smaller `--window-size` crops the screenshot instead of narrowing the layout. Test phone layouts at 500 px wide.
 
 ## State and open threads (update this when they change)
 

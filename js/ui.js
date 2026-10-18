@@ -1,5 +1,6 @@
 'use strict';
-// Side panels: transport controls, map editor, parameter sliders, inspector. Mouse/keyboard on the map.
+// The app shell (top bar, icon rail + drawer, right panel, chart strip, full screen), transport controls, map
+// editor, parameter sliders, inspector. Pointer input on the map (mouse, touch, pinch) and keyboard shortcuts.
 
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 'Max'];   // ticks per frame
 const $ = id => document.getElementById(id);
@@ -9,8 +10,11 @@ const UI = {
   selected: null, follow: false, tps: 0, armed: null,   // armed: null, 'drop' or an event key (waiting for a map click)
 
   init() {
+    // phones: narrow screen. Touch phones start with a lower population cap (a default only: the slider still goes to 3000)
+    this.mobile = matchMedia('(max-width: 760px)').matches;
+    if (this.mobile && matchMedia('(pointer: coarse)').matches) P.maxPop = Math.min(P.maxPop, 600);
     // transport
-    $('btnPlay').onclick = () => this.setRunning(!this.running);
+    $('btnPlay').onclick = $('hudPlay').onclick = () => this.setRunning(!this.running);
     $('btnStep').onclick = () => { this.setRunning(false); Sim.step(); };
     $('speed').oninput = e => { this.speedIdx = +e.target.value; $('speedLbl').textContent = this.speedLabel(); };
     $('speedLbl').textContent = this.speedLabel();
@@ -88,10 +92,98 @@ const UI = {
     this.buildEvents();
     this.initTips();
     this.bindMap();
+    this.initShell();
+    if (this.mobile) { Render.resize(); Render.fit(); }   // phones: fill the screen with map
     window.addEventListener('keydown', e => {
-      if (e.code === 'Escape') this.arm(null);
-      if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); this.setRunning(!this.running); }
+      const typing = e.target.tagName === 'INPUT' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA';
+      if (e.code === 'Escape') { this.arm(null); this.expandChart(null); }
+      if (typing) return;
+      if (e.code === 'Space') { e.preventDefault(); this.setRunning(!this.running); }
+      else if (e.key === '[') this.toggleLeft();
+      else if (e.key === ']') this.setLayout({ right: !this.layout.right });
+      else if (e.key === 'c' || e.key === 'C') this.setLayout({ charts: !this.layout.charts });
+      else if (e.key === 'f' || e.key === 'F') this.setFull(!this.layout.fs);
     });
+  },
+
+  // ---- app shell: drawer panes, panels, chart strip, full screen; the layout is remembered per browser ----
+  initShell() {
+    this.layoutKey = this.mobile ? 'simlet-layout-m' : 'simlet-layout';      // phones remember their own layout
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(this.layoutKey) || '{}'); } catch (e) { /* storage blocked: defaults */ }
+    const base = this.mobile ? { pane: 'sim', left: false, right: false, charts: false } : { pane: 'sim', left: true, right: true, charts: true };
+    this.layout = Object.assign(base, saved, { fs: false });
+    $('railRight').onclick = () => this.setLayout({ right: !this.layout.right });
+    document.querySelectorAll('.railbtn').forEach(b => b.onclick = () => {
+      if (this.layout.left && this.layout.pane === b.dataset.pane) this.setLayout({ left: false });
+      else this.setLayout({ left: true, pane: b.dataset.pane });
+    });
+    $('btnCharts').onclick = () => this.setLayout({ charts: !this.layout.charts });
+    $('btnRight').onclick = () => this.setLayout({ right: !this.layout.right });
+    $('btnFull').onclick = $('hudExit').onclick = () => this.setFull(!this.layout.fs);
+    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && this.layout.fs) this.setFull(false); });
+    // chart strip: an expand button on each chart; in titles-only mode, clicking a title expands that chart
+    document.querySelectorAll('#charts .chart').forEach(ch => {
+      const b = document.createElement('button');
+      b.className = 'cexp'; b.textContent = '⤢'; b.dataset.tip = 'Expand this chart over the map (Esc or ⤢ to close)';
+      b.onclick = e => { e.stopPropagation(); this.expandChart(ch.classList.contains('big') ? null : ch); };
+      ch.querySelector('.ctitle').appendChild(b);
+      ch.querySelector('.ctitle').addEventListener('click', e => {
+        if (!this.layout.charts && !ch.classList.contains('big') && e.target.tagName !== 'SELECT') this.expandChart(ch);
+      });
+    });
+    // the map canvas follows its box (drawer, panels and chart strip all change it), not just the window
+    new ResizeObserver(() => Render.resize()).observe($('mapWrap'));
+    $('paramSearch').oninput = e => this.filterParams(e.target.value);
+    this.setLayout({});
+  },
+  setLayout(change) {
+    if (this.mobile && change.left) change.right = false;                    // phones: one bottom sheet at a time
+    if (this.mobile && change.right) change.left = false;
+    Object.assign(this.layout, change);
+    const L = this.layout, B = document.body.classList;
+    B.toggle('left-closed', !L.left); B.toggle('right-closed', !L.right); B.toggle('charts-mini', !L.charts); B.toggle('fs', L.fs);
+    document.querySelectorAll('.railbtn').forEach(b => b.classList.toggle('on', L.left && b.dataset.pane === L.pane));
+    document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === L.pane));
+    $('btnCharts').classList.toggle('on', L.charts); $('btnRight').classList.toggle('on', L.right); $('railRight').classList.toggle('on', L.right);
+    $('hud').classList.toggle('hidden', !L.fs);
+    try { localStorage.setItem(this.layoutKey, JSON.stringify(L)); } catch (e) { /* fine */ }
+  },
+  toggleLeft() { this.setLayout({ left: !this.layout.left }); },
+  setFull(on) {
+    this.setLayout({ fs: on });
+    try {
+      if (on && !document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+      if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    } catch (e) { /* the browser refused: the in-page full screen still applies */ }
+    setTimeout(() => { Render.resize(); Render.fit(); }, 120);   // after the layout (and the browser's full screen) settles
+  },
+  expandChart(ch) {
+    document.querySelectorAll('#charts .chart.big').forEach(c => { if (c !== ch) c.classList.remove('big'); });
+    if (ch) ch.classList.add('big');
+    requestAnimationFrame(() => { Charts.resize(); Charts.draw(); });
+  },
+  // settings search: show matching sliders (label, section or tip text) and open their sections
+  filterParams(q) {
+    q = q.trim().toLowerCase();
+    document.querySelectorAll('#params details').forEach(det => {
+      let any = false;
+      det.querySelectorAll('.param').forEach(p => { const hit = !q || p.dataset.search.includes(q); p.classList.toggle('hidden', !hit); any = any || hit; });
+      det.classList.toggle('hidden', !any);
+      if (q) det.open = any;
+    });
+  },
+  // at-a-glance numbers for the top bar and the full-screen HUD
+  updateGlance(h, o, c) {
+    const n = Math.max(1, World.landTiles.length), pc = k => Math.round(100 * k / n);
+    const g = `<span data-tip="Population, then herbivores / omnivores / carnivores"><b>${Sim.simlets.length.toLocaleString()}</b> ` +
+      `<span style="color:var(--herb)">●${h}</span> <span style="color:var(--omni)">◆${o}</span> <span style="color:var(--carn)">▲${c}</span></span>` +
+      `<span class="gsep"></span><span data-tip="Species alive (with at least the 'Smallest species listed' number of members)"><b>${Species.shown().length}</b> species</span>` +
+      `<span class="gsep gland"></span><span class="gland" data-tip="Share of the land that is fertile / forest">fertile <b>${pc(World.fertileTiles.length)}%</b> forest <b>${pc(World.forestTiles.length)}%</b></span>`;
+    const ev = Events.active.map(e => { const d = e.def || EVENT_BY_KEY[e.key]; return d ? `<span class="evchip" style="border-color:${d.color}" data-tip="${d.name} is running">${d.name}</span>` : ''; }).join('');
+    if (g !== this._glance) { $('glance').innerHTML = $('hudGlance').innerHTML = g; this._glance = g; }
+    if (ev !== this._evchips) { $('evChips').innerHTML = $('hudEvents').innerHTML = ev; this._evchips = ev; }
+    if (this.layout && this.layout.fs) $('hudClock').textContent = `Day ${Math.floor(Sim.tick / P.dayLength)} · ${World.season(Sim.tick) ? 'BUST' : 'BOOM'} · ${SPEEDS[this.speedIdx] === 'Max' ? 'Max' : '×' + SPEEDS[this.speedIdx]}`;
   },
 
   // Point actions wait for a click on the map: 'drop' (Air-drop) or an event key (point events). null disarms; Esc too.
@@ -138,11 +230,11 @@ const UI = {
     $('eventLog').innerHTML = rows || '<p class="hint" style="margin:6px 0 0">No events yet.</p>';
   },
   speedLabel() { const s = SPEEDS[this.speedIdx]; return s === 'Max' ? 'Max' : '×' + s; },
-  setRunning(r) { this.running = r; $('btnPlay').textContent = r ? '❚❚ Pause' : '▶ Play'; },
+  setRunning(r) { this.running = r; $('btnPlay').textContent = $('hudPlay').textContent = r ? '❚❚' : '▶'; },
   setMode(m) {
     this.mode = m;
     $('modeRun').classList.toggle('on', m === 'run'); $('modeEdit').classList.toggle('on', m === 'edit');
-    $('editTools').classList.toggle('hidden', m !== 'edit');
+    $('editTools').classList.toggle('hidden', m !== 'edit'); $('runHint').classList.toggle('hidden', m === 'edit');
     $('map').style.cursor = m === 'edit' ? 'cell' : 'crosshair';
     if (m === 'run') {
       this.mapChanged();
@@ -170,6 +262,7 @@ const UI = {
     };
     root.appendChild(reset);
     this.paramInputs = {};
+    const defaults = Object.fromEntries(PARAM_DEFS.map(d => [d[1], d[6]]));
     for (const [sec, key, label, min, max, step] of PARAM_DEFS) {
       let det = sections.get(sec);
       if (!det) {
@@ -179,36 +272,60 @@ const UI = {
       }
       const wrap = document.createElement('div'); wrap.className = 'param';
       wrap.innerHTML = `<label class="lbl" data-tip="${PARAM_TIPS[key] || ''}">${label} <span class="val"></span></label><input type="range" min="${min}" max="${max}" step="${step}">`;
+      wrap.dataset.search = `${label} ${sec} ${PARAM_TIPS[key] || ''}`.toLowerCase();
       const inp = wrap.querySelector('input'), val = wrap.querySelector('.val');
-      inp.value = P[key]; val.textContent = P[key];
-      inp.oninput = () => { P[key] = +inp.value; val.textContent = inp.value; };
-      this.paramInputs[key] = () => { inp.value = P[key]; val.textContent = P[key]; };   // refresh after restore
+      const mark = () => wrap.classList.toggle('changed', P[key] !== defaults[key]);   // dot = changed from default
+      inp.value = P[key]; val.textContent = P[key]; mark();
+      inp.oninput = () => { P[key] = +inp.value; val.textContent = inp.value; mark(); };
+      this.paramInputs[key] = () => { inp.value = P[key]; val.textContent = P[key]; mark(); };   // refresh after restore
       det.appendChild(wrap);
     }
   },
 
-  // ---- map mouse handling: wheel zoom, drag pan, click select, paint in edit mode ----
+  // ---- map pointer handling (mouse, pen, touch): wheel or pinch zoom, drag pan, click/tap select, paint in edit
+  // mode (left button or one finger). Right-drag or two fingers always pan. ----
   bindMap() {
     const c = $('map'); let drag = null;
+    const pts = new Map();                            // active pointers: id -> [px, py]
+    let pinch = null;                                 // { d, mx, my } while two fingers are down
+    const local = e => { const r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const zoomAt = (px, py, k) => {
+      const [wx, wy] = Render.toWorld(px, py);
+      Render.cam.zoom = clamp(Render.cam.zoom * k, 1, 60);
+      const [nx, ny] = Render.toWorld(px, py);       // keep the point under the cursor / fingers fixed
+      Render.cam.x += wx - nx; Render.cam.y += wy - ny;
+    };
+    const two = () => { const [a, b] = [...pts.values()]; return { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 }; };
+    c.style.touchAction = 'none';                     // the page must not scroll or zoom under the map
     c.addEventListener('contextmenu', e => e.preventDefault());
     c.addEventListener('wheel', e => {
       e.preventDefault();
-      const r = c.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-      const [wx, wy] = Render.toWorld(px, py);
-      Render.cam.zoom = clamp(Render.cam.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), 1, 60);
-      const [nx, ny] = Render.toWorld(px, py);       // keep the point under the cursor fixed
-      Render.cam.x += wx - nx; Render.cam.y += wy - ny;
+      const [px, py] = local(e);
+      zoomAt(px, py, e.deltaY < 0 ? 1.15 : 1 / 1.15);
     }, { passive: false });
-    c.addEventListener('mousedown', e => {
-      const r = c.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    c.addEventListener('pointerdown', e => {
+      c.setPointerCapture(e.pointerId);
+      const [px, py] = local(e);
+      pts.set(e.pointerId, [px, py]);
+      if (pts.size === 2) { pinch = two(); if (drag) drag.moved = true; drag = null; return; }   // second finger: pinch, not paint
+      if (pts.size > 2) return;
       const paint = this.mode === 'edit' && e.button === 0;
       drag = { px, py, sx: px, sy: py, moved: false, paint };
       if (paint) this.paintAt(px, py);
     });
-    window.addEventListener('mousemove', e => {
+    c.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId)) return;
+      const [px, py] = local(e);
+      pts.set(e.pointerId, [px, py]);
+      if (pinch && pts.size === 2) {
+        const now = two();
+        zoomAt(now.mx, now.my, now.d / pinch.d);
+        Render.cam.x -= (now.mx - pinch.mx) / Render.cam.zoom; Render.cam.y -= (now.my - pinch.my) / Render.cam.zoom;
+        pinch = now; this.follow = false;
+        return;
+      }
       if (!drag) return;
-      const r = c.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-      if (Math.hypot(px - drag.sx, py - drag.sy) > 4) drag.moved = true;
+      if (Math.hypot(px - drag.sx, py - drag.sy) > (e.pointerType === 'touch' ? 10 : 4)) drag.moved = true;
       if (drag.paint) this.paintAt(px, py);
       else {
         Render.cam.x -= (px - drag.px) / Render.cam.zoom; Render.cam.y -= (py - drag.py) / Render.cam.zoom;
@@ -216,7 +333,11 @@ const UI = {
       }
       drag.px = px; drag.py = py;
     });
-    window.addEventListener('mouseup', () => {
+    const up = e => {
+      pts.delete(e.pointerId);
+      if (pts.size < 2) pinch = null;
+      if (pts.size) return;                           // wait for the last finger
+      if (e.type === 'pointercancel' && drag) drag.moved = true;   // the browser took the gesture: not a tap
       if (drag && !drag.moved && !drag.paint && this.mode === 'run' && this.armed) {
         const [x, y] = Render.toWorld(drag.sx, drag.sy);
         if (x > 0 && y > 0 && x < WORLD_W && y < WORLD_H) {
@@ -225,12 +346,15 @@ const UI = {
         }
         this.arm(null);
       } else if (drag && !drag.moved && !drag.paint && this.mode === 'run') {
-        this.selected = Render.pick(drag.sx, drag.sy);
+        this.selected = Render.pick(drag.sx, drag.sy, e.pointerType === 'touch' ? 22 : 8);
+        if (!this.selected && this.mobile) this.setLayout({ left: false, right: false });
         this.renderInspector(true);
       }
       if (drag && drag.paint) this.mapChanged();
       drag = null;
-    });
+    };
+    c.addEventListener('pointerup', up);
+    c.addEventListener('pointercancel', up);
   },
   paintAt(px, py) {
     const [x, y] = Render.toWorld(px, py);
@@ -259,6 +383,7 @@ const UI = {
       ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Shelters built / building', `${[...Shelters.tiles.values()].filter(s => s.done).length} / ${[...Shelters.tiles.values()].filter(s => !s.done).length}`], ['Food in shelters', Math.round([...Shelters.tiles.values()].reduce((a, s) => a + s.store, 0))], ['Land fertile / forest', landShare()], ['Species alive', Species.shown().length], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
     ];
     $('stats').innerHTML = rows.map(([k, v]) => `<span>${k}</span><b>${v.toLocaleString()}</b>`).join('');
+    this.updateGlance(h, o, c);
     this.renderEventLog();
     $('extinct').classList.toggle('hidden', Sim.simlets.length > 0 || Sim.tick === 0 || this.mode === 'edit');
   },
@@ -266,6 +391,21 @@ const UI = {
   // ---- hover explanations: any element with data-tip shows a floating note ----
   initTips() {
     const tip = $('itip');
+    // touch screens have no hover: press and hold anything with a tip to read it; it hides on the next touch
+    let hold = null;
+    document.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'touch') return;
+      tip.classList.add('hidden'); clearTimeout(hold);
+      const t = e.target.closest && e.target.closest('[data-tip]'); if (!t || !t.dataset.tip) return;
+      hold = setTimeout(() => {
+        tip.textContent = t.dataset.tip; tip.classList.remove('hidden');
+        const r = t.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+        tip.style.left = clamp(r.left + r.width / 2 - w / 2, 8, window.innerWidth - w - 8) + 'px';
+        tip.style.top = (r.top - h - 10 > 8 ? r.top - h - 10 : Math.min(window.innerHeight - h - 8, r.bottom + 10)) + 'px';
+      }, 450);
+    });
+    document.addEventListener('pointerup', () => clearTimeout(hold));
+    document.addEventListener('pointercancel', () => clearTimeout(hold));
     document.addEventListener('mouseover', e => {
       const t = e.target.closest && e.target.closest('[data-tip]');
       if (!t || !t.dataset.tip) { tip.classList.add('hidden'); return; }
@@ -282,7 +422,10 @@ const UI = {
   renderInspector(force) {
     const s = this.selected, el = $('inspector');
     if (!s) { this._insp = null; Render.highlight = null; this.renderSpeciesList(); return; }
-    if (force || this._insp !== s) { this.buildInspector(s); this._insp = s; }
+    if (force || this._insp !== s) {
+      this.buildInspector(s); this._insp = s;
+      if (this.layout && !this.layout.right && !this.layout.fs) this.setLayout({ right: true });   // selecting opens the inspector
+    }
     this.updateInspector(s);
   },
 
@@ -373,7 +516,7 @@ const UI = {
       <div id="iFamily" class="family"></div>
       <div id="iDead" class="dead-banner hidden"></div>
       <span id="iAction" class="doing"></span>
-      <p class="hint">Hover any row for an explanation.</p>
+      <p class="hint">${matchMedia('(pointer: coarse)').matches ? 'Press and hold' : 'Hover'} any row for an explanation.</p>
       <h3>Vitals</h3>
       ${row('Species', '', 'Genetic cluster this simlet belongs to (see the species list when nothing is selected). Membership is re-checked every 50 ticks, so it can change if the population drifts.', 'iSpecies')}
       ${row('Status', '', 'What the events running now are doing to this simlet (for example sick). – = nothing.', 'iStatus')}

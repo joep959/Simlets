@@ -24,8 +24,9 @@ const Render = {
     this.w = r.width; this.h = r.height;
     this.canvas.width = Math.round(r.width * this.dpr); this.canvas.height = Math.round(r.height * this.dpr);
   },
-  fit() {
-    this.cam.zoom = Math.min(this.w / WORLD_W, this.h / WORLD_H) * 0.98;
+  fit() {                                             // whole map in view; on phones (portrait) fill the screen instead
+    const zx = this.w / WORLD_W, zy = this.h / WORLD_H;
+    this.cam.zoom = (typeof UI !== 'undefined' && UI.mobile ? Math.max(zx, zy) : Math.min(zx, zy) * 0.98);
     this.cam.x = WORLD_W / 2; this.cam.y = WORLD_H / 2;
   },
   toScreen(x, y) { return [(x - this.cam.x) * this.cam.zoom + this.w / 2, (y - this.cam.y) * this.cam.zoom + this.h / 2]; },
@@ -303,12 +304,12 @@ const Render = {
 
   },
 
-  pick(px, py) {
+  pick(px, py, slop = 8) {                            // slop: extra screen pixels of reach (bigger for fingers)
     const [x, y] = this.toWorld(px, py);
     let best = null, bd = 1e9;
     for (const s of Sim.simlets) {
       const d = Math.hypot(s.x - x, s.y - y);
-      if (d < s.radius + 8 / this.cam.zoom && d < bd) { bd = d; best = s; }
+      if (d < s.radius + slop / this.cam.zoom && d < bd) { bd = d; best = s; }
     }
     return best;
   },
