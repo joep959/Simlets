@@ -4,7 +4,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## Architecture
 
-- Plain HTML/JS/CSS, **no build step and no server**: it must work by double-clicking `index.html` (file://). So **no ES modules**. Every `js/*.js` is a classic script sharing globals, loaded in the order in `index.html`: config → genome → brain → species → world → simlet → sim → save → render → charts → ui → main.
+- Plain HTML/JS/CSS, **no build step and no server**: it must work by double-clicking `index.html` (file://). So **no ES modules**. Every `js/*.js` is a classic script sharing globals, loaded in the order in `index.html`: config → genome → brain → species → world → shelter → simlet → sim → events → events/* → save → render → charts → ui → main. (It still works from file://; a plain `python -m http.server` is only for phones.)
 - **Version control:** git repo on `main` (the hybrid brain was built on `hybrid-brain` and merged; the first commit is the pre-brain snapshot). Do risky work on a branch and commit often so Joe can always roll back; merge when he says so.
 - Key globals:
   - `P`: live slider values
@@ -49,14 +49,24 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## State and open threads (update this when they change)
 
-- Branch `events` (not merged): tile property table, systems registry, events framework, land chart, and six events: plague (+ Resistance gene), fire, flood, famine, bounty, radiation (DESIGN.md §14). All six checked (§14f). Moisture BFS bug fixed (§14e).
-- Living land phase 1 merged to main (Oct 2026) (DESIGN.md §9j). Joe's choices: 3 derived types for now, godly brushes, forest about 1 tile/yr, grazing drain included.
-- Built: everything in README.md (shelters + stockpiling merged to main Oct 2026; chart history window; gene-derived markings; 27 genes incl. sexuality, stamina, smell, building and thrift; scent trails + Track action, hybrid neural brain (toggle), optimal-foraging food choice, diet-aware targeting, winter (ice bridges via shore-distance + closing, cold drain, forest shelter and steady forest food), farming with home fields + crop storage + soil nutrients/fallow + farmland visuals (villages), species colouring by default, species, air-drop, immigration, hover help, diet shapes, laptop-friendly brightness).
-- Offered but not approved yet:
-  - family highlighting
-  - cost-of-sex slider
-  - immigrant group size slider
-  - night-shading slider
-  - prey tracking (memory / scent), prey choice by expected gain, retuning BODY_COST
-  - farm-site choice (spread fields to grassland), field defence
-- Known weak spot: carnivore persistence. Bottleneck measured as encounter rate (DESIGN.md §12). The carnivore autopsy approach (energy ledger, causes of death, prey-in-range) is worth recreating for any balance question.
+- **Branches:** `main` = up to the land rework. `ui` = everything newest, being playtested; merge it into main when Joe says so:
+  - the events framework and six events (DESIGN.md §14)
+  - the moisture fix
+  - the new desktop / phone UI (§15)
+  - rarer events and destructive floods
+
+  `events` is fully contained in `ui`. `shelters`, `land-rework` and the `event-*` branches are merged and can be deleted.
+- **Built:** everything in README.md and DESIGN.md §9–15. That includes:
+  - 28 genes, the latest being building, thrift and resistance
+  - the hybrid brain
+  - winter, farming, shelters and stockpiling, living land
+  - six random events
+  - chart history window, gene-derived markings, and the app shell with phone support
+- **Joe's choices to respect:**
+  - 3 derived land types for now, godly brushes, forest creeps about 1 tile/yr
+  - boom rot ×2
+  - events rare: Joe found them far too frequent at first
+  - floods destroy fields, houses and trees
+  - the phone runs the sim itself, served from the PC
+- **Next and docket:** DESIGN.md §13 (performance pass and hazard sensing first, then a big feature).
+- **Known weak spot:** carnivore persistence. Bottleneck measured as encounter rate (DESIGN.md §12). The carnivore autopsy approach (energy ledger, causes of death, prey-in-range) is worth recreating for any balance question.

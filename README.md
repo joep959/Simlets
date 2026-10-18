@@ -1,6 +1,6 @@
 # Simlets
 
-An evolving ecosystem you can watch in the browser. Simlets are small creatures with a 27-gene chromosome. They eat, hunt, flee, farm, share and breed on a map you paint yourself. Nobody scores them: the ones that survive long enough to breed pass their genes on, and the world decides what "fit" means.
+An evolving ecosystem you can watch in the browser. Simlets are small creatures with a 28-gene chromosome. They eat, hunt, flee, farm, share and breed on a map you paint yourself. Nobody scores them: the ones that survive long enough to breed pass their genes on, and the world decides what "fit" means.
 
 It's a play and learning project about genetic algorithms, agent-based simulation and evolution.
 
@@ -87,8 +87,9 @@ Random events shake the world up. Each can be triggered from the **Events** pane
 | Body | Size, Max speed, Camouflage, Diet (0 plants … 1 meat), Lifespan |
 | Senses | FOV width (wide = short-sighted, low acuity), Smell (follow plant-eater scent trails), Memory |
 | Movement | Wander, Sprint urge, Stamina (sprint meter), Water aversion, Rest |
-| Feeding | Hunger threshold, Scavenge |
-| Social | Flee, Aggression, Kin pull, Donation, Alarm, Farming |
+| Feeding | Hunger threshold, Thrift (save the family store for later), Scavenge |
+| Social | Flee, Aggression, Kin pull, Donation, Alarm, Farming, Building |
+| Health | Resistance (to plague) |
 | Breeding | Breed threshold, Brood size, Sexuality (sexual vs clone), Choosiness (mate similarity) |
 
 Every gene has a cost or a trade-off. Hover a gene in the inspector for the specifics. `DESIGN.md` has the full mechanics and formulas.
@@ -117,7 +118,7 @@ Every gene has a cost or a trade-off. Hover a gene in the inspector for the spec
 | `index.html`, `css/style.css` | Page layout and styling |
 | `js/config.js` | World constants and every slider (with its hover text) |
 | `js/brain.js` | The hybrid neural brain (network, mutation, crossover, inspector heat-map data) |
-| `js/genome.js` | The 27 genes, mutation, crossover, similarity, colour |
+| `js/genome.js` | The 28 genes, mutation, crossover, similarity, colour |
 | `js/species.js` | Species clustering (NEAT-style) |
 | `js/world.js` | Terrain, map generation, save/load, food storage, seasons, day/night |
 | `js/simlet.js` | A simlet's body, and its sense → decide → act behaviour |

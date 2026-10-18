@@ -321,28 +321,45 @@ NEAT-style clustering:
 - Behaviour rules are fixed; only their weights evolve. Evolved brains (neuroevolution) would be v2.
 - There are no sexes, so there's no real cost of sex.
 
-## 13. Open ideas (not built)
+## 13. Docket (what's next)
 
-- Farm-site choice / crops can't grow on tiles with wild plants (to spread fields onto grassland). Parked by Joe.
-- Field defence (aggression towards strangers eating your crops).
-- Prey choice by expected net gain (catchable / beatable / filling). Parked by Joe.
-- Highlight a selected simlet's family (parents, children, siblings) on the map.
-- A cost-of-sex slider.
-- A separate immigrant group size.
-- A night-shading slider.
-- Disturbances (droughts, fires).
-- Mountains (block line of sight).
-- Pure neural brain (no rule scores), or adding more brain inputs (e.g. scent, memory of prey).
-- **Joe's docket (Oct 2026):**
-  - **Land rework:** phase 1 built (§9j), and the land-over-time chart (§14d). Next: fully continuous food (soil × moisture) instead of the 3 derived types, if they feel steppy; hooks for drought, fire and flood.
-  - **Brain rework:** more raw senses (counts of food, kin and threats by direction), more weight to the brain over the rules, and memory (a recurrent brain).
-  - **Build what?:** a two-level decision (build → which structure), plus more structures.
-  - **Random events:** plague, drought, fire, flood, bounty. Framework built (§14c) with stubs for plague, fire, flood, famine, bounty and a radiation (mutation) event.
-  - **Dynamic water:** simlets divert water, dig channels or irrigation, and build reservoirs, so water itself becomes part of the living land (moisture already follows water automatically).
-  - **Building synergies:** more bonuses between structures (e.g. granary + fields, houses + wells, walls + fields), so settlements become more than the sum of their parts.
-  - **Noted in playtest (Oct 2026):** little visible migration; a plant-eater monoculture took over early and held (immigrants short-lived; plague is the planned counter); full-energy simlets often still choose to eat (wasted bites); late-game slowdown from population size (a performance pass on sensing is due).
-  - **Random events:** built and checked (§14f). Ideas: simlets sense and flee fire (a brain input); a targeted plague-vs-monoculture test.
-  - **Meta-optimisation:** an outer optimiser (GA, CMA-ES or Bayesian optimisation) tunes world parameters using headless runs, scored on carnivores persisting alongside herbivores. Do it after the land rework, which resets the balance anyway.
+**Recently built (Oct 2026):**
+- living land (§9j)
+- chart history window and gene-derived looks (§9i)
+- tile table, systems and events framework (§14a–c)
+- six random events (§14f)
+- moisture fix (§14e)
+- app shell and phone UI (§15)
+
+**Suggested next, in order:**
+1. **Performance pass:** large populations slow down because every think scans neighbours and food. It matters more now that phones run the simulation themselves (§15).
+2. **Hazard sensing:** simlets don't sense fire or floodwater, so they stand in it. Add rule awareness plus brain inputs (e.g. fire / flood nearby) so they flee.
+3. **Then one of the big features below.**
+
+**Big features (Joe's docket):**
+- **Dynamic water:** simlets divert water, dig channels or irrigation, and build reservoirs, so water itself becomes part of the living land. Moisture already follows water automatically (§9j).
+- **"Build what?" and building synergies:** a two-level decision (build → which structure), more structures (wells, irrigation, bridges, walls, granaries), and bonuses between them (e.g. granary + fields, houses + wells, walls + fields). Pairs naturally with dynamic water.
+- **Brain rework:** more raw senses (counts of food, kin and threats by direction, terrain), more weight to the brain over the rules, and memory (a simple recurrent brain, not an LSTM).
+- **Meta-optimisation:** an outer optimiser (CMA-ES or Bayesian optimisation preferred over a plain GA, since runs are noisy and costly) tunes world parameters with seeded headless runs (tools/landprobe.js). The score should reward carnivores persisting alongside herbivores, plus diversity, to avoid degenerate worlds.
+- **Land rework phase 2:** fully continuous food (soil × moisture) instead of the 3 derived types, if they feel steppy. More tile types are now cheap (§14a).
+- **Remote view (maybe):** the PC runs the simulation and the phone only displays it, if phone performance disappoints.
+
+**Playtest notes still open:**
+- Little visible migration.
+- Plant-eater monocultures: plague now helps (§14f paired test) but is weak against a species above 80%.
+- Full-energy simlets often still choose to eat (wasted bites).
+- Breeding often shows n/a in the brain panel. That's by design (immature, cooling down, or no compatible mate in view); a "Breeding: why" status line was offered.
+
+**Smaller ideas, offered but not approved:**
+- family highlighting on the map
+- a cost-of-sex slider
+- a separate immigrant group size
+- a night-shading slider
+- prey tracking (memory / scent) and prey choice by expected gain (parked by Joe)
+- farm-site choice to spread fields onto grassland (parked by Joe)
+- field defence
+- mountains that block line of sight
+- a pure neural brain (no rule scores)
 
 ## 14. Framework: tile table, systems and events (Oct 2026)
 
@@ -442,6 +459,17 @@ defineEvent({
 
 **Land over time** (fifth chart): the share of land that is fertile / grassland / forest, sampled into `Sim.history.land` (one array per sample, indexed by terrain type) with the other series, so it follows the history window and halving and is saved with history. Saves from before it show a gap.
 
+### 14e. Moisture bug (found while building this; fixed)
+
+`World.computeMoisture`'s BFS queue held only W×H entries, but the search needs about 3× that (diagonal steps re-queue tiles), so later pushes were silently dropped. Land far from water (54% of the land on one map) never got a distance and sat at the base moisture 0.3. Fertile land wasn't affected (it lies within a few tiles of water, which the search reached before overflowing), so starting maps look the same. Now fixed: moisture uses `World.waterDist`, the full search.
+
+- Effect: much more land can now hold forest (47–91% of land vs about half before).
+- **Test (seeds 11/12/13, 60k ticks):**
+  - Events off: forest 20→29 / 38→56 / 15→29%.
+  - Events on (fire about 6–8 times a decade): forest 20→21 / 38→35 / 15→25%, and fertile land ends 1–4 points higher.
+  - Lowest population is identical on or off (96 / 25 / 49).
+  - No retune needed: fire is the check on the wider forest range.
+
 ### 14f. The six events (Oct 2026)
 
 Defaults: automatic events on, none in the first 6,000 ticks; frequency = average ticks between automatic occurrences (a 100/every chance every 100 ticks; an event that is already running is never auto-triggered again).
@@ -484,13 +512,21 @@ No extinctions.
 - The effect is strong where the dominant species holds about 75% (13/x), and weak where it holds over 80% (seed 12): it loses hundreds to the plague but breeds straight back.
 - Stronger levers if wanted: a higher plagueSpread, or a slower fade.
 
-### 14e. Moisture bug (found while building this; fixed)
+## 15. UI shell and phones (ui.js, style.css, Oct 2026)
 
-`World.computeMoisture`'s BFS queue held only W×H entries, but the search needs about 3× that (diagonal steps re-queue tiles), so later pushes were silently dropped. Land far from water (54% of the land on one map) never got a distance and sat at the base moisture 0.3. Fertile land wasn't affected (it lies within a few tiles of water, which the search reached before overflowing), so starting maps look the same. Now fixed: moisture uses `World.waterDist`, the full search.
-
-- Effect: much more land can now hold forest (47–91% of land vs about half before).
-- **Test (seeds 11/12/13, 60k ticks):**
-  - Events off: forest 20→29 / 38→56 / 15→29%.
-  - Events on (fire about 6–8 times a decade): forest 20→21 / 38→35 / 15→25%, and fertile land ends 1–4 points higher.
-  - Lowest population is identical on or off (96 / 25 / 49).
-  - No retune needed: fire is the check on the wider forest range.
+- **Layout:** the top bar holds the transport, clock and at-a-glance numbers (population by diet, species, fertile and forest share, event chips). An icon rail picks one drawer section (Simulation, Map, Events, Settings). The right panel holds the inspector and species list, then come the chart strip and the map.
+  - Body classes drive the CSS grid: `left-closed`, `right-closed`, `charts-mini`, `fs`.
+  - `UI.setLayout(change)` applies a change and saves it to localStorage (`simlet-layout`; phones `simlet-layout-m`).
+- **Charts:** ⤢ expands one chart over the map (`.chart.big`). The strip can shrink to titles only (click a title to expand). Charts plot against tick (§9i).
+- **Full screen:** hides everything but the map and a HUD (play/pause, day, season, speed, numbers, events), and asks the browser for real full screen. F toggles it, as does Esc in the browser.
+- **Settings search:** filters sliders by label, section and tip text. A dot marks sliders changed from their default.
+- **Shortcuts:** Space, `[`, `]`, C, F, Esc.
+- **Input:** pointer events on the map (mouse, pen, touch). Wheel or pinch zooms around the cursor or fingers; drag, right-drag or two fingers pans; a click or tap selects (22 px of reach for fingers vs 8 for a mouse). In edit mode a left drag or one finger paints.
+- **Phones (< 760 px wide):**
+  - The rail becomes a bottom tab bar, with an inspector tab.
+  - The drawer and inspector become bottom sheets, one at a time. Swipe one down to close it; tapping empty map closes it too.
+  - The top bar slims down, the chart strip scrolls sideways (titles-only by default), and the map fills the screen (`Render.fit` covers instead of contains).
+  - Press and hold shows tips.
+  - Touch phones start with maxPop 600 (a default, not a cap).
+- **Serving to a phone:** `python -m http.server 8000` in the folder, then `http://<PC IP>:8000`. The simulation runs on the phone; the PC only serves the files.
+- **Testing:** headless Edge at 1600×1000, 1366×768 and 500 px wide (it won't render narrower than about 492 px). Touch gestures can't be tested headless; Joe checks them on his phone.
