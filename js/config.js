@@ -19,9 +19,9 @@ const TERRAIN = { GRASS: 0, FERTILE: 1, FOREST: 2, WATER: 3 };
 const TERRAIN_INFO = [
   { name: 'Grassland', color: '#d6cf98', chart: '#d6cf98', spawnKey: 'grassSpawn',   spawnOrder: 1, bustHit: true,  farmKey: 'farmYieldGrass',
     vision: 1,   camo: 0,   coldKey: null,            buildable: true,  timber: false, forest: false },
-  { name: 'Fertile',   color: '#6aa84f', chart: '#8fd16a', spawnKey: 'fertileSpawn', spawnOrder: 0, bustHit: true,  farmKey: 'farmYieldFertile',
+  { name: 'Fertile',   color: '#6aa84f', chart: '#a8dc6c', spawnKey: 'fertileSpawn', spawnOrder: 0, bustHit: true,  farmKey: 'farmYieldFertile',
     vision: 1,   camo: 0,   coldKey: null,            buildable: true,  timber: false, forest: false },
-  { name: 'Forest',    color: '#3d6b45', chart: '#3fae7a', spawnKey: 'forestSpawn',  spawnOrder: 2, bustHit: false, farmKey: null,
+  { name: 'Forest',    color: '#3d6b45', chart: '#3f9a5f', spawnKey: 'forestSpawn',  spawnOrder: 2, bustHit: false, farmKey: null,
     vision: 0.6, camo: 0.3, coldKey: 'forestShelter', buildable: true,  timber: true,  forest: true },
   { name: 'Water',     color: '#4a86c0', chart: null,      spawnKey: null,           spawnOrder: 9, bustHit: false, farmKey: null,
     vision: 1,   camo: 0,   coldKey: null,            buildable: false, timber: false, forest: false },

@@ -68,6 +68,7 @@ const Save = {
     Object.assign(Sim, { tick: o.sim.tick, births: o.sim.births, deaths: o.sim.deaths, alarms: o.sim.alarms,
       farmEvents: o.sim.farmEvents, stillborn: o.sim.stillborn, arrivals: o.sim.arrivals, lastImmigration: o.sim.lastImmigration,
       birthsSex: o.sim.birthsSex, birthsAsex: o.sim.birthsAsex, brainInfluence: o.sim.brainInfluence, history: o.sim.history });
+    if (!Sim.history.land) Sim.history.land = Sim.history.t.map(() => null);   // saved before the Land chart: no data
     World.updateIce(Sim.tick);
     // species
     Species.nextId = o.species.nextId; Species.slots = o.species.slots; Species.extinctCount = o.species.extinctCount;

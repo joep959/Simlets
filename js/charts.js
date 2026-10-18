@@ -1,15 +1,16 @@
 'use strict';
-// Three small live charts under the map, each with a hover crosshair/tooltip.
+// Five small live charts under the map, each with a hover crosshair/tooltip.
 
 const COL = { ink2: '#a9a8a0', ink3: '#6f6e68', grid: '#24272c', herb: '#199e70', omni: '#3987e5', carn: '#d95926', accent: '#3987e5' };
 const PAD = { l: 34, r: 8, t: 6, b: 16 };
+const LAND_TYPES = TERRAIN_INFO.map((t, i) => i).filter(i => TERRAIN_INFO[i].chart);   // charted on Land over time
 
 const Charts = {
   pop: null, gene: null, diet: null, geneIdx: G.diet, hover: null, tip: null,
 
   init() {
     this.tip = document.getElementById('tip');
-    for (const [key, id] of [['pop', 'chartPop'], ['species', 'chartSpecies'], ['gene', 'chartGene'], ['diet', 'chartDiet']]) {
+    for (const [key, id] of [['pop', 'chartPop'], ['species', 'chartSpecies'], ['gene', 'chartGene'], ['land', 'chartLand'], ['diet', 'chartDiet']]) {
       const c = document.getElementById(id);
       this[key] = { c, ctx: c.getContext('2d'), w: 0, h: 0 };
       c.addEventListener('mousemove', e => { const r = c.getBoundingClientRect(); this.hover = { key, x: e.clientX - r.left, cx: e.clientX, cy: e.clientY }; });
@@ -22,12 +23,14 @@ const Charts = {
     this.resize();
     // re-fit whenever a chart panel changes size (legend wrapping, layout shifts), not just on window resize
     const ro = new ResizeObserver(() => { this.resize(); this.draw(); });
-    for (const k of ['pop', 'species', 'gene', 'diet']) ro.observe(this[k].c.parentElement);
+    for (const k of ['pop', 'species', 'gene', 'land', 'diet']) ro.observe(this[k].c.parentElement);
+    document.getElementById('landLegend').innerHTML = LAND_TYPES.map(t =>
+      `<span><i class="ln" style="background:${TERRAIN_INFO[t].chart}"></i>${TERRAIN_INFO[t].name}</span>`).join('');
   },
 
   resize() {
     const dpr = window.devicePixelRatio || 1;
-    for (const k of ['pop', 'species', 'gene', 'diet']) {
+    for (const k of ['pop', 'species', 'gene', 'land', 'diet']) {
       const ch = this[k], r = ch.c.getBoundingClientRect();
       ch.w = r.width; ch.h = r.height; ch.dpr = dpr;
       ch.c.width = Math.round(r.width * dpr); ch.c.height = Math.round(r.height * dpr);
@@ -56,9 +59,11 @@ const Charts = {
     const ph = h - PAD.t - PAD.b;
     ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
     ctx.beginPath();
+    let pen = false;                                      // null values (no data, e.g. old saves) leave a gap
     for (let i = 0; i < n; i++) {
+      if (ys[i] == null) { pen = false; continue; }
       const x = this.X(ch, xs[i]), y = PAD.t + ph * (1 - ys[i] / ymax);
-      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      pen ? ctx.lineTo(x, y) : ctx.moveTo(x, y); pen = true;
     }
     ctx.stroke();
   },
@@ -201,6 +206,23 @@ const Charts = {
       if (i >= 0) {
         this.crosshair(ch, H.t[i]);
         this.showTip(`<span class="k">tick</span> ${H.t[i]}<br>${GENES[gi].label}: mean <b>${H.mean[i][gi].toFixed(2)}</b> ± ${H.sd[i][gi].toFixed(2)}`);
+        tipShown = true;
+      }
+    }
+
+    // Land over time: % of land per terrain type (TERRAIN_INFO rows with a chart colour)
+    {
+      const ch = this.land; ch.key = 'land';
+      const L = H.land || [];
+      let mx = 10; for (const r of L) if (r) for (const t of LAND_TYPES) mx = Math.max(mx, r[t]);
+      const ymax = Math.min(100, Math.ceil(mx * 1.1 / 10) * 10);
+      this.frame(ch, ymax, v => Math.round(v) + '%');
+      for (const t of LAND_TYPES) this.line(ch, H.t, L.map(r => r ? r[t] : null), ymax, TERRAIN_INFO[t].chart);
+      this.xLabels(ch, H.t);
+      const i = this.hoverIndex(ch, H.t);
+      if (i >= 0) {
+        this.crosshair(ch, H.t[i]);
+        this.showTip(`<span class="k">tick</span> ${H.t[i]}` + (L[i] ? LAND_TYPES.map(t => `<br>${TERRAIN_INFO[t].name} <b>${L[i][t].toFixed(1)}%</b>`).join('') : '<br><span class="k">no data</span>'));
         tipShown = true;
       }
     }

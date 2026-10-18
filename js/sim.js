@@ -15,7 +15,7 @@ const Sim = {
     this.tick = 0; this.simlets = []; this.newborns = [];
     this.births = 0; this.deaths = { starved: 0, old: 0, killed: 0 }; this.alarms = 0; this.farmEvents = 0; this.stillborn = 0;
     this.arrivals = 0; this.lastImmigration = 0; this.dropFx = []; this.birthsSex = 0; this.birthsAsex = 0; this.brainCorr = 0; this.brainThinks = 0; this.brainInfluence = 0;
-    this.history = { interval: 50, t: [], pop: [], herb: [], omni: [], carn: [], food: [], mean: [], sd: [], species: [] };
+    this.history = { interval: 50, t: [], pop: [], herb: [], omni: [], carn: [], food: [], mean: [], sd: [], species: [], land: [] };
     Species.reset();
     for (const sys of Systems) if (sys.reset) sys.reset();   // tilled marks, scent, ice, shelters, events...
     World.clearFlood();
@@ -240,7 +240,9 @@ const Sim = {
     const sd = Array.from(sq, (v, i) => Math.sqrt(Math.max(0, v / n - mean[i] * mean[i])));
     h.t.push(this.tick); h.pop.push(L.length); h.herb.push(herb); h.omni.push(omni); h.carn.push(carn);
     h.food.push(Food.count); h.mean.push(mean); h.sd.push(sd); h.species.push(Species.snapshot());
-    const keys = ['t', 'pop', 'herb', 'omni', 'carn', 'food', 'mean', 'sd', 'species'];
+    const nLand = Math.max(1, World.landTiles.length);     // land: % of land per terrain type (index = type; water 0)
+    h.land.push(TERRAIN_INFO.map((info, t) => info.chart ? Math.round(1000 * World.typeTiles[t].length / nLand) / 10 : 0));
+    const keys = ['t', 'pop', 'herb', 'omni', 'carn', 'food', 'mean', 'sd', 'species', 'land'];
     if (P.chartWindow > 0) {                              // recent history only: drop samples older than the window
       let k = 0; while (k < h.t.length && h.t[k] <= this.tick - P.chartWindow) k++;
       if (k) for (const key of keys) h[key].splice(0, k);
