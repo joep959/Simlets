@@ -465,7 +465,22 @@ Built in parallel by six agents on branches event-<key>; flood and famine were a
 | Events on (first try: no grace year, famine every 48k) | 36 / 12 / 45 | 10 / 12 / 4 | seed 11 had 3 famines, the first at tick 100 |
 | **Events on (final: grace year, famine every 60k)** | **115 / 16 / 34** | **8 / 9 / 6** | 9–12 per run: 2–5 fires, 2–3 floods, 1–2 plagues, 0–2 famines and bounties, 0–1 radiation |
 
-No extinctions. Effects on diversity are within the seed noise at this length; plague's effect on monocultures needs a targeted, longer test.
+No extinctions.
+
+**Plague vs monoculture (paired test).** Each world was grown to tick 18,000 with events off, saved, and forked into two arms with the same random stream: "none", and "plague" (an automatic outbreak in the largest species). Both ran 18,000 more ticks with immigration on. Seeds 11/12/13 × 2 replicates; values are means over the 3 years.
+
+| Seed / rep | Top species share, none → plague | Simpson diversity | Species with ≥ 10 members | End population |
+|---|---|---|---|---|
+| 11/1 (fizzled: 2 cases) | 81 → 75% | 0.34 → 0.41 | 3.5 → 3.3 | 302 → 252 |
+| 11/2 | 76 → 66% | 0.40 → 0.51 | 3.4 → 4.4 | 220 → 275 |
+| 12/1 | 90 → 88% | 0.19 → 0.22 | 3.0 → 3.3 | 424 → 440 |
+| 12/2 | 97 → 94% | 0.06 → 0.11 | 1.6 → 2.2 | 457 → 431 |
+| 13/1 | 79 → 57% | 0.36 → 0.57 | 4.1 → 4.7 | 380 → 416 |
+| 13/2 | 74 → 62% | 0.39 → 0.54 | 3.6 → 5.9 | 412 → 462 |
+
+- Diversity rose in all 6 pairs and the top species' share fell, with no lasting population cost.
+- The effect is strong where the dominant species holds about 75% (13/x), and weak where it holds over 80% (seed 12): it loses hundreds to the plague but breeds straight back.
+- Stronger levers if wanted: a higher plagueSpread, or a slower fade.
 
 ### 14e. Moisture bug (found while building this; fixed)
 

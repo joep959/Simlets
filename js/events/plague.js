@@ -40,7 +40,7 @@ const Plague = {
   report(ev) {
     const pct = ev.spStart ? Math.round(100 * ev.spDied / ev.spStart) : 0;
     Events.note(ev, `${this.label(ev)} (${ev.spStart} at start): ${ev.infected} infected, ${ev.died} died while sick ` +
-                    `(${ev.diedDisease} of the disease); ${ev.spDied} of the species died (${pct}%)` + (ev.sick.length ? `, ${ev.sick.length} sick now` : ''));
+                    `(${ev.diedDisease} of the disease); ${ev.spDied} deaths among the species while it ran (${pct}% of its starting size)` + (ev.sick.length ? `, ${ev.sick.length} sick now` : ''));
   },
 };
 
