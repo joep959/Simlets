@@ -28,14 +28,14 @@ defineEvent({
   key: 'bounty', name: 'Bounty', color: '#62cf72', needsPoint: false,
   tip: 'A bumper season (mast year): wild food grows faster everywhere for a while, forest food most, and the forest drops a windfall of plants at the start. It ramps up over the first 10% of the event and fades over the last 30%. The extra food is ordinary wild plants: tile cap, dormant soil and floods still limit it, and each plant still draws soil nutrients, so heavy growth can wear land out. Expect a breeding boom and then a crash when it ends.',
   params: [
-    ['Bounty', 'bountyBoost',    'Food growth ×',            1, 5,     0.1, 2.5],
+    ['Bounty', 'bountyBoost',    'Food growth ×',            1, 5,     0.1, 2],
     ['Bounty', 'bountyMast',     'Extra × in forest (mast)', 1, 4,     0.1, 2],
     ['Bounty', 'bountyLength',   'Length (ticks)',         500, 10000, 500, 3000],
     ['Bounty', 'bountyWindfall', 'Forest windfall',          0, 1,     0.05, 0.25],
   ],
   tips: {
     bountyBoost: 'During a bounty, wild food grows this many times faster on every terrain, on top of the boom/bust season (so a bounty in bust softens the winter). Full strength in the middle of the event, ramping in and out at the ends.',
-    bountyMast: 'Forest gets this extra multiplier on top of Food growth × (a mast year: trees fruit heavily). 2.5 × 2 = forest food grows 5 times faster at the peak.',
+    bountyMast: 'Forest gets this extra multiplier on top of Food growth × (a mast year: trees fruit heavily). With the defaults (2 × 2) forest food grows 4 times faster at the peak.',
     bountyLength: 'How long a bounty lasts, in ticks (a year is 6,000 ticks at default settings). The first 10% ramps up, the last 30% fades out.',
     bountyWindfall: 'One-off drop when a bounty starts: about this many plants per forest tile fall at once (0.25 = one per four forest tiles), placed like normal wild plants (tile cap, dormant soil, shelters and floods still block them). 0 = no windfall.',
   },
@@ -97,5 +97,5 @@ defineEvent({
     ctx.restore();
   },
   save(ev) { return { boost: ev.boost, mast: ev.mast, len: ev.len, pop0: ev.pop0, peak: ev.peak, windfall: ev.windfall }; },
-  load(ev, d) { Object.assign(ev, { boost: 2.5, mast: 2, len: 3000, pop0: 0, peak: 0, windfall: 0 }, d || {}); },
+  load(ev, d) { Object.assign(ev, { boost: 2, mast: 2, len: 3000, pop0: 0, peak: 0, windfall: 0 }, d || {}); },
 });
