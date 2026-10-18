@@ -19,10 +19,10 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 
 | Area | What's there |
 |---|---|
-| **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Save world… / Load world…** (the whole world as a file, so experiments survive reloads), **Restore default settings**, and all world sliders (hover a slider for what it does) |
+| **Left panel** | Play/pause, speed, day and season clock, live stats, Run/Edit map, **Brain: rules / Hybrid**, **Air-drop tribe**, **Restart simulation**, **Events** (trigger buttons and a log of recent events), **Save world… / Load world…** (the whole world as a file, so experiments survive reloads), **Restore default settings**, and all world sliders (hover a slider for what it does) |
 | **Map** | Scroll to zoom, drag to pan, click a simlet to select it. The map key is collapsed under **Key ▸**. Default **Colour: species**; the legend button cycles species → lineage → diet. Brown furrowed tiles = farmland |
 | **Right panel** | Nothing selected: the **species list**. Simlet selected: **Highlight Family / Species** (gold parents, teal children, white siblings, lilac species-mates; click an ID to jump to it), vitals, body stats, brain and all genes |
-| **Bottom charts** | Population by diet · Species over time · Mean of any gene ± spread · Diet histogram. They show the last 30,000 ticks by default (**Display → Chart history**; 0 = the whole run) |
+| **Bottom charts** | Population by diet (with faint bands where events ran) · Species over time · Mean of any gene ± spread · Land over time (fertile / grassland / forest share) · Diet histogram. They show the last 30,000 ticks by default (**Display → Chart history**; 0 = the whole run) |
 
 **Reading a simlet on the map**
 - Shape shows diet: green round teardrop = herbivore, blue diamond = omnivore, orange arrowhead = carnivore.
@@ -50,6 +50,10 @@ Double-click `index.html`. There's nothing to install and no server; it runs in 
 - **Food:** wild plants rot. Farmed crops take 300 ticks to grow, keep 4× longer than wild plants (Crop storage slider) and anyone can eat them. Corpses are meat and decay over time.
 - **Soil:** farming exhausts the ground (and it can stop being fertile until it recovers). Exhausted (pale, "fallow") tiles grow nothing until they recover (Soil recovery slider), and rotting corpses and food fertilise the soil. Farmers on spent land walk to fresh soil.
 - **Settling:** a farmer remembers its field and drifts back to it, and its children inherit the field. Families clustering round their fields are the start of villages.
+
+## Events
+
+Random events shake the world up: **plague, fire, flood, famine, bounty and radiation** (raised mutation). The framework is in place but the events themselves are placeholders for now: triggering one only marks it on the log and the Population chart. Each can be triggered from the **Events** panel (those ending in … then need a click on the map; Esc cancels) or happen by itself: **Events → Automatic events** plus a per-event "every" slider (0 = never, the default). The inspector's **Status** line shows what running events are doing to a simlet.
 
 ## Brains
 
@@ -101,8 +105,9 @@ Every gene has a cost or a trade-off. Hover a gene in the inspector for the spec
 | `js/simlet.js` | A simlet's body, and its sense → decide → act behaviour |
 | `js/shelter.js` | Shelters: building, granary stores, decay into ruins |
 | `js/sim.js` | The tick loop, seeding, air-drops/immigration, breeding, stats history |
+| `js/events.js`, `js/events/*.js` | Random events: the framework, and one file per event |
 | `js/save.js` | Save and load whole worlds (JSON) |
 | `js/render.js`, `js/charts.js`, `js/ui.js`, `js/main.js` | Drawing, charts, panels and controls, main loop |
-| `tools/headless.js` | Runs the sim in Node without a browser, for balance tests |
+| `tools/headless.js`, `tools/landprobe.js` | Run the sim in Node without a browser, for balance and land tests (`tools/simfiles.js` reads the file list from index.html) |
 | `DESIGN.md` | How the model works, the formulas, and the tuning history |
 | `CLAUDE.md` | Working notes for Claude Code sessions on this project |

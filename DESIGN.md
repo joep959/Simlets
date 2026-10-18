@@ -8,9 +8,9 @@ There is **no fitness function**. Selection happens on its own: energy comes onl
 
 ## 2. The tick loop (`Sim.step`)
 
-1. Spawn wild food (fertile and grassland tiles, scaled by season).
-2. Every 25 ticks: rot plants and decay corpses.
-3. Immigration check (if the slider is on).
+1. Spawn wild food (per terrain type in `TERRAIN_INFO`: fertile, grassland, forest; bust scales the first two; events can scale it).
+2. Every 25 ticks: rot plants and decay corpses. Then the registered world systems (§14b): soil recovery and scent fade (every 25), land and ice (every 100), shelters (every 25).
+3. Immigration check (if the slider is on). Then events (§14c).
 4. Rebuild the spatial grid (10-tile cells) for neighbour queries.
 5. For each simlet: age it, tick its timers, **think** (every 5 ticks or when flagged), **act** (every tick), check for death.
 6. Remove the dead (they become corpses) and add the newborns.
@@ -269,6 +269,7 @@ NEAT-style clustering:
 - **Rendering:** a per-tile look key (type, soil level, tree level); only changed tiles are repainted. Saplings (T ≥ 0.2) show as dots, and richer soil as a greener tint.
 - **Calibration:**
   - Moisture reach 10 tiles + base 0.3 gives 16–27% fertile on random maps (the old painted maps had 18–36%).
+  - Measured with the moisture search bug described in §14e (about half the land sits at base moisture).
 - **Tests (Oct 2026, seeded maps; "main" = before the rework):**
 
   | 7 years (40k ticks) | Lowest bust pop | Fertile, start → end | Forest, start → end |
@@ -333,11 +334,113 @@ NEAT-style clustering:
 - Mountains (block line of sight).
 - Pure neural brain (no rule scores), or adding more brain inputs (e.g. scent, memory of prey).
 - **Joe's docket (Oct 2026):**
-  - **Land rework:** phase 1 built (§9j). Next: a land-over-time chart; fully continuous food (soil × moisture) instead of the 3 derived types, if they feel steppy; hooks for drought, fire and flood.
+  - **Land rework:** phase 1 built (§9j), and the land-over-time chart (§14d). Next: fully continuous food (soil × moisture) instead of the 3 derived types, if they feel steppy; hooks for drought, fire and flood.
   - **Brain rework:** more raw senses (counts of food, kin and threats by direction), more weight to the brain over the rules, and memory (a recurrent brain).
   - **Build what?:** a two-level decision (build → which structure), plus more structures.
-  - **Random events:** plague, drought, fire, flood, bounty.
+  - **Random events:** plague, drought, fire, flood, bounty. Framework built (§14c) with stubs for plague, fire, flood, famine, bounty and a radiation (mutation) event.
   - **Dynamic water:** simlets divert water, dig channels or irrigation, and build reservoirs, so water itself becomes part of the living land (moisture already follows water automatically).
   - **Building synergies:** more bonuses between structures (e.g. granary + fields, houses + wells, walls + fields), so settlements become more than the sum of their parts.
   - **Noted in playtest (Oct 2026):** little visible migration; a plant-eater monoculture took over early and held (immigrants short-lived; plague is the planned counter); full-energy simlets often still choose to eat (wasted bites); late-game slowdown from population size (a performance pass on sensing is due).
   - **Meta-optimisation:** an outer optimiser (GA, CMA-ES or Bayesian optimisation) tunes world parameters using headless runs, scored on carnivores persisting alongside herbivores. Do it after the land rework, which resets the balance anyway.
+
+## 14. Framework: tile table, systems and events (Oct 2026)
+
+Groundwork so new world mechanics (random events first) plug in without editing shared files. With every event frequency at 0 the simulation is byte-identical to the version before the framework (seeded `tools/landprobe.js` runs match line for line).
+
+### 14a. Tile property table (`TERRAIN_INFO`, config.js)
+
+Per-terrain behaviour is a property of the terrain's row, read by the core instead of comparing to `TERRAIN.FOREST` etc. Water and ice keep their own special handling (`World.wet`, `TERRAIN.WATER` checks), and the type derivation (`World.deriveType`) and map conversion still name types directly.
+
+| Property | Meaning | Read by |
+|---|---|---|
+| `color` | map colour | render.js |
+| `chart` | line colour on the Land chart (null = not charted) | charts.js, `Sim.sample` |
+| `spawnKey` | P key of its wild-food rate (‰/tile/tick), null = none | `Sim.step` |
+| `spawnOrder` | order of the spawn calls (fixed: the random-number sequence depends on it) | `SPAWN_TYPES` |
+| `bustHit` | Bust food multiplier applies (forest: false) | `Sim.step` |
+| `farmKey` | P key of its farm yield, null = not farmable | `think`, `doFarm`, `World.freshSoil` |
+| `vision` | vision range × while standing in it (forest 0.6) | `think` |
+| `camo` | camouflage bonus while in it (forest +0.3) | `act` |
+| `coldKey` | P key of the share of winter cold escaped in it (forest `forestShelter`) | `act` |
+| `buildable` | shelters can be built on it | `Shelters.buildable` |
+| `timber` | building in or next to it is 40% cheaper | `Shelters.costFactor` |
+| `forest` | counts as established forest: brain `inForest` input, seeds tree growth, not browsed | `think`, `World.growTrees`, `World.browse` |
+
+`World.typeTiles[type]` holds each type's tile indices (`fertileTiles`, `grassTiles`, `forestTiles` are shorthands for three of them).
+
+**Terrain encoding** (map files and saves): one base-36 character per tile (`World.encodeTerrain` / `decodeTerrain`). While every type is below 10 this is exactly the old digit string, so old files load unchanged and new files load in old code; up to 36 types fit. `decodeTerrain` also accepts a plain number array.
+
+### 14b. Systems registry (config.js)
+
+`registerSystem({ name, every = 1, phase = 'pre', update(tick), reset(), save(), load(o) })`. `Sim.step` runs, in registration order (script load order):
+
+1. wild-food spawn; every 25 ticks food rot (`Sim.rotFood`, kept in Sim);
+2. `runSystems('pre')`: `soil` (25: `World.recoverSoil`), `scent` (25: `World.fadeScent`), `land` (100: `World.updateLand`), `ice` (100: `World.updateIce`), `shelters` (25: `Shelters.update`);
+3. immigration;
+4. `runSystems('post')`: `events` (every tick);
+5. the simlets (as in §2).
+
+`Sim.reset` calls every system's `reset()` (and `World.clearFlood()`). `Save.serialize` stores each system's `save()` result (plain JSON) under `o.systems[name]`; `Save.restore` hands it to `load()` last, after the map, simlets, species and shelters are back. The older explicit save fields stay as they were; `systems`, `world.flood` and simlet `fx` are optional additions, so the save version stays 4 and v3/v4 files still load.
+
+`addParams(rows, tips)` (config.js): adds slider rows (`[section, key, label, min, max, step, default]`) and hover tips from any file loaded before ui.js, and sets the P defaults. Rows join their section's heading wherever they were added.
+
+### 14c. Events framework (`js/events.js`, `js/events/<key>.js`)
+
+Script order: `sim.js` → `events.js` → `events/plague.js`, `fire.js`, `flood.js`, `famine.js`, `bounty.js`, `mutation.js` → `save.js` … The headless tools read this list from index.html (`tools/simfiles.js`), so a new event file only needs its `<script>` line.
+
+**Defining an event** (one file, nothing else to edit):
+
+```js
+defineEvent({
+  key: 'fire', name: 'Fire', color: '#ef5b3c',   // colour of its log dot, button edge and chart band
+  tip: 'What it does (hover text; written from the code).',
+  needsPoint: true,          // the trigger button arms a map click (like Air-drop); start gets opts.x, opts.y
+  every: 0,                  // default of the '<key>Every' slider (average ticks between automatic occurrences)
+  stack: false,              // true = may start again while one is still running (automatic triggers)
+  params: [['Fire', 'fireSpread', 'Spread chance', 0, 1, 0.01, 0.2]],   // own sliders (own section name)
+  tips: { fireSpread: 'Hover text for the slider.' },
+  causes: { burned: 'Burned' },        // death causes it uses -> label in the stats panel
+  autoOpts() { return { x, y } },       // optional: where an automatic one happens (default: random dry land if needsPoint)
+  start(ev, opts) { },       // set up; store state on ev (ev.x/ev.y already set from opts). Return false to cancel.
+  update(ev, tick) { },      // every tick while active; return false when finished. Omit = one-shot event.
+  end(ev) { },               // clean up (drain flood tiles, clear s.fx entries...)
+  modify: { spawn(mult, ctx, ev) { return mult; }, mutation(m, ctx, ev) { return m; } },
+  draw(ctx, ev, R) { },      // map overlay: R.toScreen(x, y) -> screen px, R.cam.zoom = px per tile
+  describe(s, ev) { return s.fx.fire ? 'Burnt' : ''; },   // inspector Status text for simlet s ('' = nothing)
+  save(ev) { return { ...plain JSON... }; },               // active-event state
+  load(ev, data) { },        // rebuild ev's state from data (ev's standard fields are already restored)
+});
+```
+
+- **Sliders:** every event gets `<key>Every` in section Events (0 = never, the default for now). The master `eventsOn` (Events section, default 1) switches automatic occurrences off; the trigger buttons always work.
+- **Automatic triggers:** every 100 ticks, for each event in load order with `eventsOn` and `<key>Every` > 0 (and none running unless `stack`), one `Math.random() < 100 / Every` draw. No draw at all when off, so runs stay reproducible.
+- **The event object `ev`:** `{ id, key, def, start (tick), x, y, auto, note, entry }` plus anything the event adds. `Events.note(ev, text)` sets the log text (shown on hover).
+- **API:** `Events.trigger(key, opts)` (manual or scripted; returns `ev` or null), `Events.stop(ev)` (end early), `Events.active`, `Events.isActive(key)`, `Events.log` (`{ key, name, start, end, note }`, end null while running; last 200 finished kept), `Events.modify(hook, value, ctx)`, `Events.describe(s)`.
+- **Hooks in the core** (value unchanged and no random numbers when nothing modifies it):
+  - `'spawn'`: `Sim.step`, once per wild-food terrain type per tick. Value = the season multiplier (1, or `bustFactor` where `bustHit`); `ctx = { type }`. Return the new multiplier (0 = nothing grows).
+  - `'mutation'`: `Sim.breed`, once per litter. Value = `{ rate, size, brainRate, brainSize }` (defaults: Mutation rate, Mutation size, Mutation rate, Brain mutation size); `ctx = { x, y, a, b }` (position of parent a; b null when asexual). Return a new object, don't change the one passed in.
+- **Map state for events:**
+  - `World.flood` (Uint8Array, 1 = flooded land), changed only via `World.setFlood(i, on)`; `World.floodTiles` (Set); `World.clearFlood()`. Flooded tiles count as water for movement (`World.wet`: half speed, water cost, simlets steer away), grow no wild food, and are drawn as shallow floodwater under food and simlets. Saved with the world; cleared by `Sim.reset`. Events must drain their own tiles in `end`.
+  - `World.waterDist` (Float32Array): each tile's distance to the nearest water (8-neighbour steps, diagonal 1.414; water = 0; 1e9 if the map has no water). Recomputed when the water layout changes.
+  - Everything else is reachable directly (classic scripts share globals): `World` (terrain, soil, trees, moist, `typeTiles`, `landTiles`, `setSoil`, `clearTrees`, `refreshLand`), `Food` (`add`, `remove`, `query(x, y, r, cb)`, `forEach`), `Sim` (`tick`, `simlets`, `querySimlets(x, y, r, cb)`, `kill`, `randomLand`), `Shelters` (`tiles` Map), `Species`, `P`.
+- **Per-simlet state:** `s.fx` is a plain object on every simlet (e.g. `s.fx.plague = { until: 1234 }`), saved and loaded as JSON. Children start with `{}`.
+- **Deaths:** `Sim.kill(s, 'cause')` with any cause string: counted in `Sim.deaths[cause]` and shown in the stats panel after Starved / Killed / Old age (label from `causes`, else "Died: cause"). The body still becomes a corpse (energy conservation: an event may destroy energy, e.g. burn corpses, but must never create it outside plant spawning and farming).
+- **Drawing order:** terrain, ice, floodwater, fallow, farmland, ruins, **event overlays**, night shading, food, shelters, simlets.
+- **Saving:** the `events` system saves the log, the active list and each active event's `save(ev)` under `o.systems.events`. An active event whose file has been removed is closed in the log on load.
+- **Reset:** `Sim.reset` drops active events without calling `end` (the world they changed is being reset too). So keep event effects in `ev`, `s.fx`, `World.flood` or hooks: never change `P` permanently.
+- **UI:** trigger buttons and the recent-events log (left panel), a Status line in the inspector, and faint bands on the Population chart (hover names the event).
+
+**Recipe for a new event:**
+1. Copy a stub in `js/events/`, keep `key`, set `name`, `color`, `tip`, `needsPoint`.
+2. Add its own sliders in `params`/`tips` under its own section name; propose a default for `every`.
+3. Put the per-tick work in `update` (loop `Sim.simlets`, `Food.forEach`, or tiles), per-simlet state in `s.fx`, world-wide nudges through `modify` hooks, deaths via `Sim.kill(s, cause)` plus `causes`.
+4. `end` undoes temporary effects; `save`/`load` cover anything on `ev` that a reload needs.
+5. Test: `node tools/headless.js` with `"{\"<key>Every\":3000}"`, and check a seeded landprobe run with the event off is unchanged.
+
+### 14d. Charts
+
+**Land over time** (fifth chart): the share of land that is fertile / grassland / forest, sampled into `Sim.history.land` (one array per sample, indexed by terrain type) with the other series, so it follows the history window and halving and is saved with history. Saves from before it show a gap.
+
+### 14e. Known bug found while building this (not fixed)
+
+`World.computeMoisture`'s BFS queue holds only W×H entries but the search needs about 3× that (diagonal steps re-queue tiles), so pushes past the end are silently dropped. About half the land (54% on one random map) never gets a distance and sits at the base moisture 0.3. The land rework (§9j) was tuned with this in place, so it is kept for now (`World.waterDistance(false)`); `World.waterDist` uses the correct search. Fixing it is a one-word change but shifts soil caps, fertile land and tree growth: retune §9j if it is fixed.

@@ -85,7 +85,18 @@ const World = {
 
   // Moisture: breadth-first distance from water over land, then rain plus an exponential fall-off from the shore
   computeMoisture() {
-    const W = WORLD_W, H = WORLD_H, d = new Float32Array(W * H), q = new Int32Array(W * H);
+    const W = WORLD_W, H = WORLD_H;
+    // KNOWN BUG, kept on purpose so runs match the tuned land: the queue holds only W*H entries but this BFS
+    // re-queues tiles (diagonal steps improve them) and needs about 3x that, so later pushes are dropped and roughly
+    // half the land never gets a distance (moisture falls back to MOIST_BASE there). Fixing it = waterDistance(true)
+    // here, which changes the moisture map and needs the land retuned (DESIGN.md §9j).
+    const d = this.waterDistance(false);
+    for (let i = 0; i < W * H; i++) this.moist[i] = this.terrain[i] === TERRAIN.WATER ? 1 : MOIST_BASE + (1 - MOIST_BASE) * Math.exp(-(d[i] - 1) / MOIST_RANGE);
+    this.waterDist.set(this.waterDistance(true));   // correct distances, for events (floods); 1e9 if there is no water
+  },
+  // distance from every tile to the nearest water (8-neighbour steps, diagonal 1.414); full = unbounded queue
+  waterDistance(full) {
+    const W = WORLD_W, H = WORLD_H, d = new Float32Array(W * H), q = full ? [] : new Int32Array(W * H);
     let head = 0, tail = 0;
     for (let i = 0; i < W * H; i++) { if (this.terrain[i] === TERRAIN.WATER) { d[i] = 0; q[tail++] = i; } else d[i] = 1e9; }
     while (head < tail) {
@@ -97,8 +108,7 @@ const World = {
         if (d[j] > d[i] + step) { d[j] = d[i] + step; q[tail++] = j; }
       }
     }
-    for (let i = 0; i < W * H; i++) this.moist[i] = this.terrain[i] === TERRAIN.WATER ? 1 : MOIST_BASE + (1 - MOIST_BASE) * Math.exp(-(d[i] - 1) / MOIST_RANGE);
-    this.waterDist.set(d);                       // kept for events (floods); 1e9 everywhere if there is no water
+    return d;
   },
 
   // Trees (every 100 ticks): each tile grows toward the cover its moisture supports, seeded by neighbouring forest,
