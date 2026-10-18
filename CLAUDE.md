@@ -31,8 +31,8 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## Testing
 
-- **Headless balance runs:** `node tools/headless.js 20000 "{\"param\":value}" 2000`. Runs the real sim files in Node.
-- **Land and paired runs:** `node tools/landprobe.js js 40000 "{}" 4000 1 "CONST=v" 11` adds land shares and churn, a seed for identical maps, and overrides for constants that aren't sliders. Keep a `git worktree` of main as the baseline. Use several seeds (maps are random); run them in parallel in the background since each takes about 1–5 minutes.
+- **Headless balance runs:** `node tools/headless.js 20000 "{\"param\":value}" 2000`. Runs the real sim files in Node. Use several seeds (maps are random); run them in parallel in the background since each takes about 1–5 minutes.
+- **Land and paired runs:** `node tools/landprobe.js js 40000 "{}" 4000 1 "CONST=v" 11` adds land shares and churn, a seed for identical maps, and overrides for constants that aren't sliders. Keep a `git worktree` of main as the baseline.
 - **Browser checks:** headless Edge (`msedge --headless=new --screenshot` / `--dump-dom`) with a scratch copy of index.html that:
   - adds `<base href="file:///<repo folder>/">` (Joe works on more than one machine, so use this clone's actual path)
   - replaces `requestAnimationFrame` with `setTimeout`
