@@ -255,7 +255,7 @@ NEAT-style clustering:
   - Marking colour: the lineage hue at 24% lightness. Drawn only when the body is at least 4.5 px across.
   - Body length × (0.85 + 0.4·speed) and width × 1/√length; outline width 0.6 + 1.6·aggression.
 
-## 9j. Living land (branch `land-rework`)
+## 9j. Living land
 
 - **Painted:** only water vs land. Each land tile carries **moisture**, **soil** and **trees**; its type is derived (`World.deriveType`) every 100 ticks. Everything else still reads `World.terrain`.
 - **Moisture:** BFS distance d from water (diagonal step 1.414); moist = 0.3 + 0.7·e^(−(d−1)/10). Recomputed only when water changes.
@@ -339,5 +339,5 @@ NEAT-style clustering:
   - **Random events:** plague, drought, fire, flood, bounty.
   - **Dynamic water:** simlets divert water, dig channels or irrigation, and build reservoirs, so water itself becomes part of the living land (moisture already follows water automatically).
   - **Building synergies:** more bonuses between structures (e.g. granary + fields, houses + wells, walls + fields), so settlements become more than the sum of their parts.
-  - **Noted in playtest (Oct 2026):** little visible migration; one map went to a strong monoculture; full-energy simlets often still choose to eat (wasted bites); late-game slowdown from population size (a performance pass on sensing is due).
+  - **Noted in playtest (Oct 2026):** little visible migration; a plant-eater monoculture took over early and held (immigrants short-lived; plague is the planned counter); full-energy simlets often still choose to eat (wasted bites); late-game slowdown from population size (a performance pass on sensing is due).
   - **Meta-optimisation:** an outer optimiser (GA, CMA-ES or Bayesian optimisation) tunes world parameters using headless runs, scored on carnivores persisting alongside herbivores. Do it after the land rework, which resets the balance anyway.

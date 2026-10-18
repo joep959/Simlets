@@ -46,7 +46,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## State and open threads (update this when they change)
 
-- Branch `land-rework` (not merged): living land phase 1 (DESIGN.md §9j). Joe's choices: 3 derived types for now, godly brushes, forest about 1 tile/yr, grazing drain included.
+- Living land phase 1 merged to main (Oct 2026) (DESIGN.md §9j). Joe's choices: 3 derived types for now, godly brushes, forest about 1 tile/yr, grazing drain included.
 - Built: everything in README.md (shelters + stockpiling merged to main Oct 2026; chart history window; gene-derived markings; 27 genes incl. sexuality, stamina, smell, building and thrift; scent trails + Track action, hybrid neural brain (toggle), optimal-foraging food choice, diet-aware targeting, winter (ice bridges via shore-distance + closing, cold drain, forest shelter and steady forest food), farming with home fields + crop storage + soil nutrients/fallow + farmland visuals (villages), species colouring by default, species, air-drop, immigration, hover help, diet shapes, laptop-friendly brightness).
 - Offered but not approved yet:
   - family highlighting
