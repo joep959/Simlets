@@ -2,11 +2,10 @@
 //   node tools/headless.js [ticks] [paramOverridesJSON] [reportEvery]
 //   e.g. node tools/headless.js 20000 "{\"immigration\":3000}" 2000
 //   add "brainMode":"hybrid" to the JSON to run with hybrid neural brains
-// Loads the same js/ files the page uses (minus rendering/UI) into one shared scope.
+// Loads the same js/ files the page uses (minus rendering/UI; the list is read from index.html) into one shared scope.
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const dir = path.join(__dirname, '..', 'js');
-const files = ['config', 'genome', 'brain', 'species', 'world', 'shelter', 'simlet', 'sim', 'events', 'events/plague', 'events/fire', 'events/flood', 'events/famine', 'events/bounty', 'events/mutation'];
-const src = files.map(f => fs.readFileSync(path.join(dir, f + '.js'), 'utf8')).join('\n');
+const src = require('./simfiles')(dir).map(f => fs.readFileSync(f, 'utf8')).join('\n');
 const ctx = vm.createContext({ console, Math, performance });
 vm.runInContext(src + '\nthis.Sim=Sim;this.World=World;this.Food=Food;this.Species=Species;this.P=P;this.G=G;this.Brain=Brain;', ctx);
 const { Sim, World, Food, Species, P, G, Brain } = ctx;
