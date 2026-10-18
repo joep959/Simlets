@@ -31,6 +31,7 @@ class Simlet {
     this.inShelter = null; this.working = false;   // shelter tile it is inside; mid build-session
     this.home = null; this.project = null;          // remembered shelter tile indices     // neural-network weights (second chromosome), see brain.js     // home field {x, y, t}: set by farming, pulls the simlet back home
     this.camoEff = 0;
+    this.fx = {};                                   // per-simlet event state (e.g. fx.plague), plain JSON: saved as is
     this.range = this.visionRange;
   }
 

@@ -5,7 +5,7 @@
 // Loads the same js/ files the page uses (minus rendering/UI) into one shared scope.
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const dir = path.join(__dirname, '..', 'js');
-const files = ['config', 'genome', 'brain', 'species', 'world', 'shelter', 'simlet', 'sim'];
+const files = ['config', 'genome', 'brain', 'species', 'world', 'shelter', 'simlet', 'sim', 'events', 'events/plague', 'events/fire', 'events/flood', 'events/famine', 'events/bounty', 'events/mutation'];
 const src = files.map(f => fs.readFileSync(path.join(dir, f + '.js'), 'utf8')).join('\n');
 const ctx = vm.createContext({ console, Math, performance });
 vm.runInContext(src + '\nthis.Sim=Sim;this.World=World;this.Food=Food;this.Species=Species;this.P=P;this.G=G;this.Brain=Brain;', ctx);

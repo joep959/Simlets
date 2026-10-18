@@ -18,6 +18,7 @@ const Sim = {
     this.history = { interval: 50, t: [], pop: [], herb: [], omni: [], carn: [], food: [], mean: [], sd: [], species: [] };
     Species.reset();
     for (const sys of Systems) if (sys.reset) sys.reset();   // tilled marks, scent, ice, shelters, events...
+    World.clearFlood();
     // (soil and trees are part of the living map: a restart keeps them)
     this.grid = Array.from({ length: this.gw * this.gh }, () => []);
     Food.reset();
@@ -100,7 +101,8 @@ const Sim = {
     const mult = World.season(this.tick) === 0 ? 1 : P.bustFactor;
     for (const t of SPAWN_TYPES) {
       const info = TERRAIN_INFO[t];
-      this.spawnOn(World.typeTiles[t], P[info.spawnKey] / 1000 * (info.bustHit ? mult : 1));   // forest: steady all year
+      const m = Events.modify('spawn', info.bustHit ? mult : 1, { type: t });   // events can scale it (famine, bounty)
+      this.spawnOn(World.typeTiles[t], P[info.spawnKey] / 1000 * m);              // forest: steady all year
     }
     if (this.tick % 25 === 0) this.rotFood();
     runSystems('pre', this.tick);                 // soil recovery, scent fade, land, ice, shelters (registerSystem)
@@ -153,7 +155,7 @@ const Sim = {
     let n = Math.floor(exp); if (Math.random() < exp - n) n++;
     for (let k = 0; k < n; k++) {
       const ti = tiles[(Math.random() * tiles.length) | 0];
-      if (Food.tileCount[ti] >= P.tileCap || World.soil[ti] < SOIL_MIN || Shelters.tiles.has(ti)) continue;   // dormant soil / shelters grow nothing
+      if (Food.tileCount[ti] >= P.tileCap || World.soil[ti] < SOIL_MIN || Shelters.tiles.has(ti) || World.flood[ti]) continue;   // dormant soil / shelters / floods grow nothing
       World.setSoil(ti, World.soil[ti] - P.plantSoil);          // a growing plant draws nutrients from its tile
       Food.add({ x: ti % WORLD_W + Math.random(), y: ((ti / WORLD_W) | 0) + Math.random(),
                  e: P.plantEnergy, born: this.tick, ready: this.tick, type: 0 });
@@ -184,7 +186,7 @@ const Sim = {
     s.dead = true; s.cause = cause; s.diedAt = this.tick;
   },
   onDeath(s) {
-    this.deaths[s.cause]++;
+    this.deaths[s.cause] = (this.deaths[s.cause] || 0) + 1;      // any cause string works (events add their own)
     const e = P.bodyCost * s.mass * 0.9 + Math.max(0, s.energy) * 0.8;
     Food.add({ x: s.x, y: s.y, e, e0: e, born: this.tick, ready: this.tick, type: 2 });
   },
@@ -199,9 +201,12 @@ const Sim = {
     // initiator's brood gene sets the max litter; litter shrinks if the energy can't build that many bodies
     const n = Math.max(1, Math.min(a.brood, Math.floor((ca + cb) / (P.bodyCost * a.mass * 1.6))));
     const each = (ca + cb) / n;
+    // events can change mutation for this litter (e.g. radiation near parent a): genes and brains
+    const mut = Events.modify('mutation', { rate: P.mutationRate, size: P.mutationSize, brainRate: P.mutationRate, brainSize: P.brainMutSize },
+                              { x: a.x, y: a.y, a, b });
     let born = 0;
     for (let k = 0; k < n; k++) {
-      const g = mutateGenome(b ? crossover(a.g, b.g) : a.g, P.mutationRate, P.mutationSize);
+      const g = mutateGenome(b ? crossover(a.g, b.g) : a.g, mut.rate, mut.size);
       const c = new Simlet(g, clamp(a.x + gauss() * 0.8, 0.5, WORLD_W - 0.5), clamp(a.y + gauss() * 0.8, 0.5, WORLD_H - 0.5),
                            0, (b ? Math.max(a.gen, b.gen) : a.gen) + 1, b ? [a.id, b.id] : [a.id]);
       // building the body costs energy; if the share can't cover body + a little reserve, the child isn't viable
@@ -212,7 +217,7 @@ const Sim = {
       if (a.field) c.field = { ...a.field };
       c.home = a.home;                                        // born into the family home
       const cb = b ? crossBrains(a.brain, b.brain) : new Float32Array(a.brain);
-      c.brain = Brain.mode === 'hybrid' ? mutateBrain(cb, P.mutationRate, P.brainMutSize) : cb;   // brains only evolve while in use                   // children grow up knowing the family field       // usually the parent's species; a misfit founds a new one
+      c.brain = Brain.mode === 'hybrid' ? mutateBrain(cb, mut.brainRate, mut.brainSize) : cb;   // brains only evolve while in use                   // children grow up knowing the family field       // usually the parent's species; a misfit founds a new one
       this.newborns.push(c); born++;
     }
     a.breedCd = BREED_COOLDOWN; a.children += born; a.needThink = true; a.breedMode = null;

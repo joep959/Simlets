@@ -13,6 +13,9 @@ const World = {
   landTiles: [],
   shoreDist: new Float32Array(WORLD_W * WORLD_H),   // water tiles: distance to nearest land (tiles)
   moist: new Float32Array(WORLD_W * WORLD_H),       // land tiles: moisture 0..1 from distance to water
+  waterDist: new Float32Array(WORLD_W * WORLD_H),   // land tiles: distance to the nearest water (tiles, diagonal 1.414); water 0
+  flood: new Uint8Array(WORLD_W * WORLD_H),         // 1 = land temporarily under floodwater (events): wet, grows no wild food
+  floodTiles: new Set(),                             // flooded tile indices (for drawing and saving); change via setFlood
   trees: new Float32Array(WORLD_W * WORLD_H),       // tree cover 0..1
   look: new Uint8Array(WORLD_W * WORLD_H),          // last drawn appearance key per tile (type, soil and tree level)
   redraw: [],                                        // tiles whose appearance changed since the last draw
@@ -95,6 +98,7 @@ const World = {
       }
     }
     for (let i = 0; i < W * H; i++) this.moist[i] = this.terrain[i] === TERRAIN.WATER ? 1 : MOIST_BASE + (1 - MOIST_BASE) * Math.exp(-(d[i] - 1) / MOIST_RANGE);
+    this.waterDist.set(d);                       // kept for events (floods); 1e9 everywhere if there is no water
   },
 
   // Trees (every 100 ticks): each tile grows toward the cover its moisture supports, seeded by neighbouring forest,
@@ -195,13 +199,19 @@ const World = {
     return tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H ? 0 : this.scent[ty * WORLD_W + tx];
   },
 
-  // open (unfrozen) water at a position: what actually slows and costs a simlet
+  // open (unfrozen) water or flooded land at a position: what actually slows and costs a simlet
   wet(x, y) {
     const tx = x | 0, ty = y | 0;
     if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) return true;
     const i = ty * WORLD_W + tx;
-    return this.terrain[i] === TERRAIN.WATER && !this.ice[i];
+    return (this.terrain[i] === TERRAIN.WATER && !this.ice[i]) || this.flood[i] === 1;
   },
+  // floodwater on a tile (events): on = true floods it, false drains it
+  setFlood(i, on) {
+    if (on) { if (!this.flood[i]) { this.flood[i] = 1; this.floodTiles.add(i); } }
+    else if (this.flood[i]) { this.flood[i] = 0; this.floodTiles.delete(i); }
+  },
+  clearFlood() { if (this.floodTiles.size) { this.flood.fill(0); this.floodTiles.clear(); } },
 
   // soil back to what each tile's moisture supports (moisture must be computed first)
   resetSoil() { this.depleted.clear(); for (let i = 0; i < this.soil.length; i++) this.setSoil(i, this.terrain[i] === TERRAIN.WATER ? 1 : this.soilCap(i)); },

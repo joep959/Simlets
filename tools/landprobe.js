@@ -5,7 +5,7 @@
 // CONST overrides replace `const NAME = value` in the loaded source (for constants that aren't sliders).
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const [dir, T, over, every, withS] = [process.argv[2], +process.argv[3], JSON.parse(process.argv[4] || '{}'), +process.argv[5], process.argv[6] !== '0'];
-let src = ['config', 'genome', 'brain', 'species', 'world', 'shelter', 'simlet', 'sim'].map(f => fs.readFileSync(path.join(dir, f + '.js'), 'utf8')).join('\n');
+let src = ['config', 'genome', 'brain', 'species', 'world', 'shelter', 'simlet', 'sim', 'events', 'events/plague', 'events/fire', 'events/flood', 'events/famine', 'events/bounty', 'events/mutation'].map(f => fs.readFileSync(path.join(dir, f + '.js'), 'utf8')).join('\n');
 for (const kv of (process.argv[7] || '').split(',').filter(Boolean)) { const [k, v] = kv.split('='); const re = new RegExp('const ' + k + ' = [^;,]+'); if (!re.test(src)) throw new Error('no const ' + k); src = src.replace(re, 'const ' + k + ' = ' + v); }
 const seed = +(process.argv[8] || 0);
 let st = seed >>> 0;

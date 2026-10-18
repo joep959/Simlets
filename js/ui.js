@@ -6,7 +6,7 @@ const $ = id => document.getElementById(id);
 
 const UI = {
   running: true, speedIdx: 2, mode: 'run', brush: 'water', brushSize: 3,
-  selected: null, follow: false, tps: 0, dropArmed: false,
+  selected: null, follow: false, tps: 0, armed: null,   // armed: null, 'drop' or an event key (waiting for a map click)
 
   init() {
     // transport
@@ -67,7 +67,7 @@ const UI = {
       });
       e.target.value = '';
     };
-    $('btnDrop').onclick = () => this.armDrop(!this.dropArmed);
+    $('btnDrop').onclick = () => this.arm(this.armed === 'drop' ? null : 'drop');
     $('btnReseed').onclick = $('btnReseed2').onclick = () => this.reseed();
 
     $('legendBtn').onclick = () => {
@@ -85,20 +85,57 @@ const UI = {
     };
     $('colorBy').dataset.tip = 'Click to cycle. Diet: green = herbivore, blue = omnivore, orange = carnivore. Species: each genetic cluster gets its own colour (grey = small species). Lineage: colour calculated straight from the genome, so close relatives share a hue. Shape always shows diet.';
     this.buildParams();
+    this.buildEvents();
     this.initTips();
     this.bindMap();
     window.addEventListener('keydown', e => {
-      if (e.code === 'Escape') this.armDrop(false);
+      if (e.code === 'Escape') this.arm(null);
       if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); this.setRunning(!this.running); }
     });
   },
 
-  armDrop(on) {
-    if (on && this.mode !== 'run') this.setMode('run');
-    this.dropArmed = on;
-    $('btnDrop').classList.toggle('armed', on);
-    $('btnDrop').textContent = on ? 'Click the map to drop… (Esc)' : 'Air-drop tribe…';
-    $('map').style.cursor = on ? 'copy' : this.mode === 'edit' ? 'cell' : 'crosshair';
+  // Point actions wait for a click on the map: 'drop' (Air-drop) or an event key (point events). null disarms; Esc too.
+  arm(what) {
+    if (what && this.mode !== 'run') this.setMode('run');
+    this.armed = what;
+    $('btnDrop').classList.toggle('armed', what === 'drop');
+    $('btnDrop').textContent = what === 'drop' ? 'Click the map to drop… (Esc)' : 'Air-drop tribe…';
+    for (const def of EVENT_DEFS) {
+      const b = this.eventBtns && this.eventBtns[def.key]; if (!b) continue;
+      b.classList.toggle('armed', what === def.key);
+      b.textContent = what === def.key ? 'Click map (Esc)' : def.name + (def.needsPoint ? '…' : '');
+    }
+    $('map').style.cursor = what ? 'copy' : this.mode === 'edit' ? 'cell' : 'crosshair';
+  },
+
+  // Events panel: one trigger button per event (point events arm a map click), and the recent-events log
+  buildEvents() {
+    const box = $('eventBtns'); this.eventBtns = {};
+    for (const def of EVENT_DEFS) {
+      const b = document.createElement('button');
+      b.className = 'btn sm evbtn';
+      b.style.borderLeft = `3px solid ${def.color}`;
+      b.dataset.tip = `Trigger ${def.name} now. ${def.tip}${def.needsPoint ? ' Then click the map where it happens (Esc cancels).' : ' Starts at once.'}`;
+      b.onclick = () => {
+        if (!def.needsPoint) { this.arm(null); Events.trigger(def.key); this.renderEventLog(); }
+        else this.arm(this.armed === def.key ? null : def.key);
+      };
+      box.appendChild(b); this.eventBtns[def.key] = b;
+    }
+    this.arm(null);                                  // sets the button labels
+    this.renderEventLog();
+  },
+  renderEventLog() {
+    if (this._logV === Events.logVersion) return;
+    this._logV = Events.logVersion;
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const rows = Events.log.slice(-8).reverse().map(e => {
+      const def = EVENT_BY_KEY[e.key], col = def ? def.color : '#888';
+      const when = e.end === null ? `t${e.start} · <b>active</b>` : `t${e.start}–${e.end}`;
+      const tip = `${e.name}: started at tick ${e.start}${e.end === null ? ', still running' : `, ended at tick ${e.end}`}.${e.note ? ' ' + e.note : ''}`;
+      return `<div class="evrow" data-tip="${esc(tip)}"><i class="sw" style="background:${col}"></i><span>${esc(e.name)}</span><span class="muted">${when}</span></div>`;
+    }).join('');
+    $('eventLog').innerHTML = rows || '<p class="hint" style="margin:6px 0 0">No events yet.</p>';
   },
   speedLabel() { const s = SPEEDS[this.speedIdx]; return s === 'Max' ? 'Max' : '×' + s; },
   setRunning(r) { this.running = r; $('btnPlay').textContent = r ? '❚❚ Pause' : '▶ Play'; },
@@ -125,7 +162,7 @@ const UI = {
   },
 
   buildParams() {
-    const root = $('params'); let section = null, det = null;
+    const root = $('params'), sections = new Map();       // rows join their section wherever they were added
     const reset = document.createElement('button');
     reset.className = 'btn wide'; reset.style.margin = '0 0 8px'; reset.textContent = 'Restore default settings';
     reset.onclick = () => {
@@ -134,10 +171,11 @@ const UI = {
     root.appendChild(reset);
     this.paramInputs = {};
     for (const [sec, key, label, min, max, step] of PARAM_DEFS) {
-      if (sec !== section) {
-        section = sec; det = document.createElement('details');
+      let det = sections.get(sec);
+      if (!det) {
+        det = document.createElement('details');
         det.innerHTML = `<summary>${sec}${sec === 'Population' ? ' <span class="muted">(applies on restart)</span>' : ''}</summary>`;
-        root.appendChild(det);
+        root.appendChild(det); sections.set(sec, det);
       }
       const wrap = document.createElement('div'); wrap.className = 'param';
       wrap.innerHTML = `<label class="lbl" data-tip="${PARAM_TIPS[key] || ''}">${label} <span class="val"></span></label><input type="range" min="${min}" max="${max}" step="${step}">`;
@@ -179,10 +217,13 @@ const UI = {
       drag.px = px; drag.py = py;
     });
     window.addEventListener('mouseup', () => {
-      if (drag && !drag.moved && !drag.paint && this.mode === 'run' && this.dropArmed) {
+      if (drag && !drag.moved && !drag.paint && this.mode === 'run' && this.armed) {
         const [x, y] = Render.toWorld(drag.sx, drag.sy);
-        if (x > 0 && y > 0 && x < WORLD_W && y < WORLD_H) Sim.dropTribe(x, y, 'air-drop');
-        this.armDrop(false);
+        if (x > 0 && y > 0 && x < WORLD_W && y < WORLD_H) {
+          if (this.armed === 'drop') Sim.dropTribe(x, y, 'air-drop');
+          else { Events.trigger(this.armed, { x, y }); this.renderEventLog(); }
+        }
+        this.arm(null);
       } else if (drag && !drag.moved && !drag.paint && this.mode === 'run') {
         this.selected = Render.pick(drag.sx, drag.sy);
         this.renderInspector(true);
@@ -211,10 +252,14 @@ const UI = {
     const rows = [
       ['Population', Sim.simlets.length], ['Herbivores', h], ['Omnivores', o], ['Carnivores', c],
       ['Food items', Food.count], ['Births', Sim.births], ['↳ sexual / asexual', `${Sim.birthsSex.toLocaleString()} / ${Sim.birthsAsex.toLocaleString()}`], ['Starved', Sim.deaths.starved],
-      ['Killed', Sim.deaths.killed], ['Old age', Sim.deaths.old], ['Alarms raised', Sim.alarms],
+      ['Killed', Sim.deaths.killed], ['Old age', Sim.deaths.old],
+      ...Object.keys(Sim.deaths).filter(k => k !== 'starved' && k !== 'killed' && k !== 'old')       // event causes (plague...)
+        .map(k => [Events.causeLabels[k] || 'Died: ' + k, Sim.deaths[k]]),
+      ['Alarms raised', Sim.alarms],
       ['Farming acts', Sim.farmEvents], ['Newcomer tribes', Sim.arrivals], ['Shelters built / building', `${[...Shelters.tiles.values()].filter(s => s.done).length} / ${[...Shelters.tiles.values()].filter(s => !s.done).length}`], ['Food in shelters', Math.round([...Shelters.tiles.values()].reduce((a, s) => a + s.store, 0))], ['Land fertile / forest', landShare()], ['Species alive', Species.shown().length], ...(Brain.mode === 'hybrid' ? [['Brain influence', Sim.brainInfluence.toFixed(3)]] : []), ['Species extinct', Species.extinctCount], ['Ticks / sec', Math.round(this.tps)],
     ];
     $('stats').innerHTML = rows.map(([k, v]) => `<span>${k}</span><b>${v.toLocaleString()}</b>`).join('');
+    this.renderEventLog();
     $('extinct').classList.toggle('hidden', Sim.simlets.length > 0 || Sim.tick === 0 || this.mode === 'edit');
   },
 
@@ -331,6 +376,7 @@ const UI = {
       <p class="hint">Hover any row for an explanation.</p>
       <h3>Vitals</h3>
       ${row('Species', '', 'Genetic cluster this simlet belongs to (see the species list when nothing is selected). Membership is re-checked every 50 ticks, so it can change if the population drifts.', 'iSpecies')}
+      ${row('Status', '', 'What the events running now are doing to this simlet (for example sick). – = nothing.', 'iStatus')}
       ${row('Energy', '', 'Current / maximum energy. Food adds energy; everything else (existing, moving, fighting, breeding, farming) spends it. Zero = starves.', 'iEnergy')}
       <div class="meter"><div id="iEnergyBar" style="background:var(--herb)"></div></div>
       ${row('Stamina', '', 'Sprint meter: drains 1 per tick of sprinting, refills when not sprinting (twice as fast when resting). Empty = exhausted, no sprinting until 30% refilled.', 'iStam')}
@@ -397,6 +443,7 @@ const UI = {
     $('iAge').textContent = `${s.age} / ${Math.round(s.maxAge)}`;
     $('iAgeBar').style.width = pct(s.age, s.maxAge);
     const sp = s.species;
+    $('iStatus').textContent = (!s.dead && Events.describe(s)) || '–';
     $('iSpecies').innerHTML = sp ? `<i class="sw" style="background:${Species.color(sp)};width:9px;height:9px"></i> S${sp.id}` : '–';
     if (Brain.mode === 'hybrid' && s.brain && s.baseScores && s.scores && $('br_eat')) {
       const f = v => v === -Infinity ? '–' : v.toFixed(2);

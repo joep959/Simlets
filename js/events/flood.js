@@ -1,0 +1,12 @@
+'use strict';
+// Flood event: STUB. Placeholder registered by the events framework (js/events.js); the real event is built in
+// this file only. See DESIGN.md §14 for the recipe and the hooks available.
+
+defineEvent({
+  key: 'flood', name: 'Flood', color: '#3fa0e8', needsPoint: false,
+  tip: 'Rivers and lakes burst their banks. Not built yet: triggering it only marks it on the log and the population chart for 500 ticks.',
+  params: [],                   // [section, key, label, min, max, step, default] rows for this event's own sliders
+  tips: {},                     // hover text for those sliders
+  start(ev, opts) { Events.note(ev, 'placeholder (does nothing yet)'); },
+  update(ev, tick) { return tick - ev.start < 500; },   // false = finished
+});

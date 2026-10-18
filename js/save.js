@@ -17,6 +17,7 @@ const Save = {
       children: s.children, kills: s.kills, farmed: s.farmed, donated: s.donated,
       attackCd: s.attackCd, breedCd: s.breedCd, alarmCd: s.alarmCd, breedMode: s.breedMode, readySince: s.readySince,
       memory: s.memory, field: s.field, species: s.species ? s.species.id : null, inShelter: s.inShelter ? s.inShelter.ti : null, built: s.built || 0, home: s.home, project: s.project,
+      fx: Object.keys(s.fx).length ? s.fx : undefined,
     }));
     const systems = {};                                     // every registered system that keeps its own state
     for (const sys of Systems) if (sys.save) systems[sys.name] = sys.save();
@@ -27,7 +28,7 @@ const Save = {
       params: { ...P }, brainMode: Brain.mode, nextId: NEXT_ID,
       world: {
         terrain: World.encodeTerrain(), soil: packF(World.soil), trees: packF(World.trees), scent: packF(World.scent),
-        iceNoise: packF(World.iceNoise), tilled: [...World.tilled],
+        iceNoise: packF(World.iceNoise), tilled: [...World.tilled], flood: World.floodTiles.size ? [...World.floodTiles] : undefined,
       },
       sim: {
         tick: Sim.tick, births: Sim.births, deaths: Sim.deaths, alarms: Sim.alarms, farmEvents: Sim.farmEvents,
@@ -63,6 +64,7 @@ const Save = {
     World.scent.set(o.world.scent);
     World.refreshLand();
     World.tilled = new Map(o.world.tilled);
+    if (o.world.flood) for (const i of o.world.flood) World.setFlood(i, true);
     Object.assign(Sim, { tick: o.sim.tick, births: o.sim.births, deaths: o.sim.deaths, alarms: o.sim.alarms,
       farmEvents: o.sim.farmEvents, stillborn: o.sim.stillborn, arrivals: o.sim.arrivals, lastImmigration: o.sim.lastImmigration,
       birthsSex: o.sim.birthsSex, birthsAsex: o.sim.birthsAsex, brainInfluence: o.sim.brainInfluence, history: o.sim.history });
@@ -89,7 +91,7 @@ const Save = {
         attackCd: d.attackCd, breedCd: d.breedCd, alarmCd: d.alarmCd, breedMode: d.breedMode, readySince: d.readySince,
         memory: d.memory || [], field: d.field, brain: d.brain ? Float32Array.from(d.brain) : newBrain(),
         species: Species.live.get(d.species) || null, needThink: true, built: d.built || 0, home: d.home ?? null, project: d.project ?? null,
-        inShelter: d.inShelter != null ? Shelters.tiles.get(d.inShelter) || null : null,
+        inShelter: d.inShelter != null ? Shelters.tiles.get(d.inShelter) || null : null, fx: d.fx || {},
       });
       if (!s.species) Species.assign(s, Sim.tick);
       Sim.simlets.push(s);

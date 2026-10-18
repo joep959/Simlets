@@ -133,5 +133,13 @@ select { background: var(--panel-2); color: var(--ink); border: 1px solid var(--
 .chip { display: inline-block; padding: 0 6px; margin: 0 3px 3px 0; border: 1px solid; border-radius: 9px; font-size: 11px; color: var(--ink); cursor: pointer; }
 .chip.dead { border-color: var(--line); color: var(--ink-3); cursor: default; }
 .btn.hl.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Events panel */
+#eventsBlock h3 { margin-top: 0; cursor: help; }
+.evbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.evbtn { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 6px; }
+.evlog { margin-top: 8px; }
+.evrow { display: grid; grid-template-columns: 10px 1fr auto; gap: 6px; align-items: center; font-size: 12px; padding: 2px 0; cursor: help; }
+.evrow .sw { width: 9px; height: 9px; }
+.evrow .muted b { color: var(--warn); font-weight: 600; }
 .dead-banner { background: #3a1f1f; color: #f0b0b0; padding: 6px 8px; border-radius: 6px; margin-top: 8px; }
 .doing { display: inline-block; padding: 2px 8px; border-radius: 10px; background: var(--panel-2); font-weight: 600; font-size: 11px; letter-spacing: 1px; }

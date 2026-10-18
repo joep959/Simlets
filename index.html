@@ -63,6 +63,12 @@
       </div>
     </section>
 
+    <section class="block" id="eventsBlock">
+      <h3 data-tip="Random events: disturbances and windfalls. Each can happen by itself (Automatic events and the per-event 'every' sliders, under Events in the settings below) or be triggered with these buttons. Buttons ending in … then need a click on the map (Esc cancels). Faint bands on the Population chart mark when each event ran.">Events <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· click to trigger</span></h3>
+      <div id="eventBtns" class="evbtns"></div>
+      <div id="eventLog" class="evlog" data-tip="Most recent events first, with the tick each started and ended. Hover an entry for its details."></div>
+    </section>
+
     <section class="block" id="params"></section>
   </aside>
 
@@ -141,6 +147,13 @@
 <script src="js/shelter.js"></script>
 <script src="js/simlet.js"></script>
 <script src="js/sim.js"></script>
+<script src="js/events.js"></script>
+<script src="js/events/plague.js"></script>
+<script src="js/events/fire.js"></script>
+<script src="js/events/flood.js"></script>
+<script src="js/events/famine.js"></script>
+<script src="js/events/bounty.js"></script>
+<script src="js/events/mutation.js"></script>
 <script src="js/save.js"></script>
 <script src="js/render.js"></script>
 <script src="js/charts.js"></script>

@@ -87,6 +87,24 @@ const Charts = {
     this.tip.style.top = (this.hover.cy - this.tip.offsetHeight - 8) + 'px';
   },
 
+  // Events as faint vertical bands (start to end, or to now while active) in each event's colour. Returns the
+  // log entries that overlap the chart's time span, with their colours, for the hover tip.
+  eventBands(ch) {
+    const [t0, t1] = this.span, { ctx, h } = ch, out = [];
+    for (const e of Events.log) {
+      const end = e.end ?? Sim.tick;
+      if (end < t0 || e.start > t1) continue;
+      const def = EVENT_BY_KEY[e.key], color = def ? def.color : '#888888';
+      const x0 = this.X(ch, Math.max(t0, e.start)), x1 = this.X(ch, Math.min(t1, end));
+      ctx.globalAlpha = 0.16; ctx.fillStyle = color;
+      ctx.fillRect(x0, PAD.t, Math.max(2, x1 - x0), h - PAD.t - PAD.b);
+      ctx.globalAlpha = 0.5; ctx.fillRect(x0, PAD.t, 1, h - PAD.t - PAD.b);   // a sharper line where it began
+      ctx.globalAlpha = 1;
+      out.push({ ...e, color });
+    }
+    return out;
+  },
+
   draw() {
     const H = Sim.history; if (!H) return;
     let tipShown = false;
@@ -97,6 +115,7 @@ const Charts = {
       const ch = this.pop; ch.key = 'pop';
       const ymax = Math.max(10, ...H.pop) * 1.1;
       this.frame(ch, ymax, v => Math.round(v));
+      const evs = this.eventBands(ch);                   // faint band per logged event, behind the lines
       this.line(ch, H.t, H.pop, ymax, COL.ink2);
       this.line(ch, H.t, H.herb, ymax, COL.herb);
       this.line(ch, H.t, H.omni, ymax, COL.omni);
@@ -105,7 +124,9 @@ const Charts = {
       const i = this.hoverIndex(ch, H.t);
       if (i >= 0) {
         this.crosshair(ch, H.t[i]);
-        this.showTip(`<span class="k">tick</span> ${H.t[i]}<br>Total <b>${H.pop[i]}</b><br>Herbivore <b>${H.herb[i]}</b><br>Omnivore <b>${H.omni[i]}</b><br>Carnivore <b>${H.carn[i]}</b><br><span class="k">food items</span> ${H.food[i]}`);
+        const during = evs.filter(e => H.t[i] >= e.start && H.t[i] <= (e.end ?? Sim.tick))
+          .map(e => `<br><i class="sw" style="background:${e.color};width:9px;height:9px"></i> ${e.name}${e.end === null ? ' (active)' : ''}`).join('');
+        this.showTip(`<span class="k">tick</span> ${H.t[i]}<br>Total <b>${H.pop[i]}</b><br>Herbivore <b>${H.herb[i]}</b><br>Omnivore <b>${H.omni[i]}</b><br>Carnivore <b>${H.carn[i]}</b><br><span class="k">food items</span> ${H.food[i]}${during}`);
         tipShown = true;
       }
     }

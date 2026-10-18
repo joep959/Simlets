@@ -111,6 +111,16 @@ const Render = {
       }
     }
 
+    // floodwater (events): flooded land drawn as shallow, slightly brown water with a faint ripple
+    for (const ti of World.floodTiles) {
+      const tx = ti % WORLD_W, ty = (ti / WORLD_W) | 0;
+      const [px, py] = this.toScreen(tx, ty);
+      if (px < -z || py < -z || px > this.w || py > this.h) continue;
+      ctx.fillStyle = 'rgba(92,140,176,0.62)';
+      ctx.fillRect(px, py, z + 0.5, z + 0.5);
+      if (z >= 6 && (ti * 2654435761 >>> 29) === 0) { ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(px + z * 0.2, py + z * 0.4, z * 0.5, 1); }
+    }
+
     // fallow: exhausted soil (below SOIL_MIN) drawn pale and dusty until it recovers
     for (const ti of World.depleted) {
       const tx = ti % WORLD_W, ty = (ti / WORLD_W) | 0;
@@ -148,6 +158,9 @@ const Render = {
       ctx.fillStyle = `rgba(120,115,108,${(0.8 * (1 - (tick - t) / 8000)).toFixed(2)})`;
       for (const [fx, fy] of [[0.2, 0.25], [0.6, 0.2], [0.35, 0.6], [0.7, 0.65]]) ctx.fillRect(px + z * fx, py + z * fy, Math.max(1, z * 0.18), Math.max(1, z * 0.14));
     }
+
+    // event overlays (fire fronts, radiation zones...): above the land layers, below night shading, food and simlets
+    Events.draw(ctx, this);
 
     // night shading: light, and applied to the land only, so food and simlets stay at full brightness
     const dk = World.darkness(tick);
