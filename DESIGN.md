@@ -341,7 +341,7 @@ NEAT-style clustering:
   - **Dynamic water:** simlets divert water, dig channels or irrigation, and build reservoirs, so water itself becomes part of the living land (moisture already follows water automatically).
   - **Building synergies:** more bonuses between structures (e.g. granary + fields, houses + wells, walls + fields), so settlements become more than the sum of their parts.
   - **Noted in playtest (Oct 2026):** little visible migration; a plant-eater monoculture took over early and held (immigrants short-lived; plague is the planned counter); full-energy simlets often still choose to eat (wasted bites); late-game slowdown from population size (a performance pass on sensing is due).
-  - **Random events:** built (§14f). To do: separate reviews of plague, fire, bounty and radiation; a targeted plague-vs-monoculture test.
+  - **Random events:** built and checked (§14f). Ideas: simlets sense and flee fire (a brain input); a targeted plague-vs-monoculture test.
   - **Moisture bug (§14e):** fix the BFS queue size, then retune the land (§9j).
   - **Meta-optimisation:** an outer optimiser (GA, CMA-ES or Bayesian optimisation) tunes world parameters using headless runs, scored on carnivores persisting alongside herbivores. Do it after the land rework, which resets the balance anyway.
 
@@ -456,7 +456,7 @@ Defaults: automatic events on, none in the first 6,000 ticks; frequency = averag
 | Bounty | 36,000 | Wild food up (default ×2), forest most, ramped in and out, plus a forest windfall at the start. All extra energy enters as ordinary wild plants. |
 | Radiation | 60,000 | A leak at a point: children conceived within the radius get higher mutation rate and size (genes, and brain weights in Hybrid), strongest at the centre, fading out over the second half. Marked 'Mutant' while it lasts. |
 
-Built in parallel by six agents on branches event-<key>; flood and famine were adversarially reviewed (both passed, minors only); plague, fire, bounty and radiation were not separately reviewed (usage limits) and could be later.
+Built in parallel by six agents on branches event-<key>; flood and famine were adversarially reviewed by agents (both passed, minors only). Plague, fire, bounty and radiation were then checked with a stress harness (each triggered on 2 seeded maps: no exceptions, NaN or out-of-range energy/soil/trees, every event ended, save/load mid-event kept it running, per-tick cost normal) plus a read-through of each file for energy conservation and logic: no bugs found. Design gap: simlets don't sense fire, so they don't flee it (deaths were low: 17 in 40k ticks).
 
 **Combined test (seeds 11/12/13, 40k ticks, all defaults; "off" = eventsOn 0):**
 
