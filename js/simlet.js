@@ -47,8 +47,8 @@ class Simlet {
     this.visionRange = Math.sqrt(2 * VISION_AREA / this.fovAngle) * (1 - 0.4 * g[G.camo]);
     this.acuity = 1 - 0.7 * g[G.fov];                             // wide eyes are worse at beating camo
     this.maxAge = 5000 + g[G.lifespan] * 15000;
-    // idle drain proportional to size; long life and big memory cost upkeep
-    this.drainMult = this.mass * (1 + 0.5 * g[G.lifespan]) * (1 + 0.3 * g[G.stamina]) + g[G.memory] * 0.3 + g[G.smell] * 0.2;
+    // idle drain proportional to size; long life, big memory, a keen nose and disease resistance cost upkeep
+    this.drainMult = this.mass * (1 + 0.5 * g[G.lifespan]) * (1 + 0.3 * g[G.stamina]) + g[G.memory] * 0.3 + g[G.smell] * 0.2 + g[G.resistance] * 0.25;
     this.scentThreshold = 0.02 + 0.5 * Math.pow(1 - g[G.smell], 2);   // faintest trail it can detect
     this.staminaMax = 40 + 260 * g[G.stamina];                     // ticks of sprinting on a full meter
     this.staminaRegen = 0.3 + 0.7 * g[G.stamina];                  // meter refill per tick when not sprinting
