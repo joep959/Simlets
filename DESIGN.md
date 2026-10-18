@@ -342,7 +342,6 @@ NEAT-style clustering:
   - **Building synergies:** more bonuses between structures (e.g. granary + fields, houses + wells, walls + fields), so settlements become more than the sum of their parts.
   - **Noted in playtest (Oct 2026):** little visible migration; a plant-eater monoculture took over early and held (immigrants short-lived; plague is the planned counter); full-energy simlets often still choose to eat (wasted bites); late-game slowdown from population size (a performance pass on sensing is due).
   - **Random events:** built and checked (§14f). Ideas: simlets sense and flee fire (a brain input); a targeted plague-vs-monoculture test.
-  - **Moisture bug (§14e):** fix the BFS queue size, then retune the land (§9j).
   - **Meta-optimisation:** an outer optimiser (GA, CMA-ES or Bayesian optimisation) tunes world parameters using headless runs, scored on carnivores persisting alongside herbivores. Do it after the land rework, which resets the balance anyway.
 
 ## 14. Framework: tile table, systems and events (Oct 2026)
@@ -468,6 +467,13 @@ Built in parallel by six agents on branches event-<key>; flood and famine were a
 
 No extinctions. Effects on diversity are within the seed noise at this length; plague's effect on monocultures needs a targeted, longer test.
 
-### 14e. Known bug found while building this (not fixed)
+### 14e. Moisture bug (found while building this; fixed)
 
-`World.computeMoisture`'s BFS queue holds only W×H entries but the search needs about 3× that (diagonal steps re-queue tiles), so pushes past the end are silently dropped. About half the land (54% on one random map) never gets a distance and sits at the base moisture 0.3. The land rework (§9j) was tuned with this in place, so it is kept for now (`World.waterDistance(false)`); `World.waterDist` uses the correct search. Fixing it is a one-word change but shifts soil caps, fertile land and tree growth: retune §9j if it is fixed.
+`World.computeMoisture`'s BFS queue held only W×H entries, but the search needs about 3× that (diagonal steps re-queue tiles), so later pushes were silently dropped. Land far from water (54% of the land on one map) never got a distance and sat at the base moisture 0.3. Fertile land wasn't affected (it lies within a few tiles of water, which the search reached before overflowing), so starting maps look the same. Now fixed: moisture uses `World.waterDist`, the full search.
+
+- Effect: much more land can now hold forest (47–91% of land vs about half before).
+- **Test (seeds 11/12/13, 60k ticks):**
+  - Events off: forest 20→29 / 38→56 / 15→29%.
+  - Events on (fire about 6–8 times a decade): forest 20→21 / 38→35 / 15→25%, and fertile land ends 1–4 points higher.
+  - Lowest population is identical on or off (96 / 25 / 49).
+  - No retune needed: fire is the check on the wider forest range.
