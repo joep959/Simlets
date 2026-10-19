@@ -285,6 +285,46 @@ NEAT-style clustering:
   - Ground-plant shading of seedlings changed forest by only 1–2 points; not kept.
   - Fire (on the events docket) is the natural long-term check on forest.
 
+## 9k. Hazard sensing: fire and floodwater (Oct 2026)
+
+Simlets used to stand in fires and wade about in floods because nothing told them the ground was dangerous. Now they sense both and get out. Disease and ice are deliberately not hazards (ice is meant to be walkable; plague is meant to thin populations).
+
+- **Sensing (`senseHazards`, simlet.js), once per think:**
+  - Costs nothing unless a fire is alight (`Fire.alight`, a running count kept by fire.js) or a flood is up (`World.floodTiles`).
+  - Otherwise it checks the simlet's own tile plus 8 compass directions at 3 distances (r/3, 2r/3, r, with r = min(vision range, 6 tiles)): 25 tile lookups, no map scan. Vision modifiers (night, forest) shrink r.
+  - No vision cone: heat, smoke and rushing water are noticed all round, and a cone would make a fleeing simlet "forget" the fire behind it and turn back.
+  - Per hazard: **danger** 0–1 (1 on the tile itself, else the closest sensed tile's closeness 1 − 0.8·d/6, so 0.2 at 6 tiles) and an **away vector** (sum of closeness-weighted unit vectors pointing away from each sensed tile).
+  - Standing in floodwater also adds the uphill direction of `World.waterDist`. Floods rise outward from the shore, so uphill leads to dry land even when every sampled tile is under water.
+- **Two signals, not one:** fire kills (4% of max energy per tick), floodwater only slows (half speed) and costs movement energy (× waterCost). They call for different responses (sprint away vs wade out), and the brain can learn them separately for 16 extra weights.
+- **Escape action (rules):** score = max(2.4 · fire danger · (0.5 + 0.5·Flee), 0.9 · Water aversion if standing in floodwater).
+  - No new gene. Fire reuses **Flee** with a floor of half strength, so the instinct can't evolve away (fires are rare, so selection on it is weak). Floodwater reuses **Water aversion**, the gene that already prices being in water.
+  - Movement: along the fire away-vector (×3) plus the flood away-vector. Sprints (Sprint gene) only from fire. With no direction sensed it keeps its heading.
+  - Approaching floodwater from dry land is already handled by the existing water-aversion probe (floodwater counts as wet).
+- **Steering for every other action:** any moving simlet veers away from sensed fire (weight 1.5 · fire danger) and, while wading, towards dry land (weight 0.9 · Water aversion; the water probe is off while wet).
+- **Quick reaction:** a simlet whose tile catches fire between thinks re-decides on the next tick instead of waiting up to 5 ticks.
+- **Hybrid brain:** new inputs `fire` and `flood` (the danger values) and a new output `escape`: 28 → 8 → 14, 350 weights. The Brain influence stat now averages over 14 actions, not 13 (a few % lower for the same brains).
+- **Saves:** version 5. Files now record the brain layout (`brainIn`, `brainOut`); `remapBrain` (brain.js) matches weights by input and output name, so new inputs and outputs start at zero and a converted brain behaves exactly as before. v3/v4 files load with the pre-hazard layout; a brain that doesn't fit is replaced with a fresh neutral one. Old code refuses v5 files instead of misreading the brains.
+- **Energy:** sensing and escaping create no energy; the only costs are the usual movement and sprint costs.
+
+- **Tests (seeded maps 11/12/13; a probe makes both versions draw identical random numbers, so main and hazards run identically until the first hazard appears):**
+  - **Regression:** with no fire or flood (events off, or seed 13 at default rates for 40k ticks, which had plague and radiation but no fire or flood) the runs match main exactly, in both brain modes.
+  - **Single-event paired trials** (the main test): grow the world to tick 4k / 8k / 12k / 16k, then light one fire in the woodland with the most simlets near it (fireSpread 0.5 for the trial) and start one flood at the most crowded shore. Measured over the next 1,500 ticks; 12 trials per brain mode.
+
+    | Totals, main → hazards | Rules | Hybrid |
+    |---|---|---|
+    | Burned to death | 108 → 5 | 72 → 1 |
+    | Simlet-ticks on burning tiles | 1,016 → 38 | 690 → 26 |
+    | Simlet-ticks in floodwater | 13,618 → 12,090 (−11%) | 14,887 → 8,543 (−43%) |
+    | Extra wading energy | 122 → 80 | 190 → 140 |
+    | Population 1,500 ticks later | 2,906 → 2,940 | 2,797 → 2,772 |
+
+    Fire exposure fell in every trial with a fire that reached simlets. Floodwater time fell in 16 of 24 trials. That's weaker: wading costs little, and the urge to wade out scales with Water aversion, which often sits mid-range.
+  - **Long runs (24k ticks, hybrid and rules, a fire every 1,500 ticks near a random simlet and a flood every 3,000): 6 pairs:** fire deaths 72 → 8, ticks on burning tiles 807 → 107, ticks in floodwater 77,550 → 46,899. Population and lowest population differ both ways, within run-to-run noise.
+  - **Events at default rates (40k ticks, hybrid):** fire deaths 6 / 0 / 0 → 0 / 0 / 0. Seed 12: ticks in floodwater 4,344 → 145.
+  - **Performance:** sensing costs about 0.6 µs per think while a hazard is up. That's about 0.3% of a tick's cost, and nothing when there is no fire or flood. Ticks/sec in the paired runs were equal within noise.
+  - **Saves:** a v4 save from main (mid-fire, evolved brains) loads; every converted brain gives the same outputs as the original (to the file's 4-decimal rounding). It runs 2,000 ticks without NaN and survives a v5 round trip.
+  - **Browser** (headless Edge, rules and hybrid): no console errors. A simlet put on a burning tile switches to ESCAPE (sprinting in hybrid) within 2 ticks. The inspector shows the escape row and the fire / flood wiring rows. An in-page save and load works.
+
 ## 10. Seeding and newcomers
 
 - **Tribe** = one random founder genome × `tribeSize` copies, each mutated (rate 0.5, σ 0.05). They land in a Gaussian blob (σ 4 tiles) at 70% energy with random ages up to 1,200 ticks.
@@ -330,11 +370,11 @@ NEAT-style clustering:
 - six random events (§14f)
 - moisture fix (§14e)
 - app shell and phone UI (§15)
+- hazard sensing: fire and floodwater, Escape action, brain inputs (§9k)
 
 **Suggested next, in order:**
 1. **Performance pass:** large populations slow down because every think scans neighbours and food. It matters more now that phones run the simulation themselves (§15).
-2. **Hazard sensing:** simlets don't sense fire or floodwater, so they stand in it. Add rule awareness plus brain inputs (e.g. fire / flood nearby) so they flee.
-3. **Then one of the big features below.**
+2. **Then one of the big features below.**
 
 **Big features (Joe's docket):**
 - **Dynamic water:** simlets divert water, dig channels or irrigation, and build reservoirs, so water itself becomes part of the living land. Moisture already follows water automatically (§9j).
@@ -483,7 +523,7 @@ Defaults: automatic events on, none in the first 6,000 ticks; frequency = averag
 | Bounty | 48,000 | Wild food up (default ×2), forest most, ramped in and out, plus a forest windfall at the start. All extra energy enters as ordinary wild plants. |
 | Radiation | 90,000 | A leak at a point: children conceived within the radius get higher mutation rate and size (genes, and brain weights in Hybrid), strongest at the centre, fading out over the second half. Marked 'Mutant' while it lasts. |
 
-Built in parallel by six agents on branches event-<key>; flood and famine were adversarially reviewed by agents (both passed, minors only). Plague, fire, bounty and radiation were then checked with a stress harness (each triggered on 2 seeded maps: no exceptions, NaN or out-of-range energy/soil/trees, every event ended, save/load mid-event kept it running, per-tick cost normal) plus a read-through of each file for energy conservation and logic: no bugs found. Design gap: simlets don't sense fire, so they don't flee it (deaths were low: 17 in 40k ticks).
+Built in parallel by six agents on branches event-<key>; flood and famine were adversarially reviewed by agents (both passed, minors only). Plague, fire, bounty and radiation were then checked with a stress harness (each triggered on 2 seeded maps: no exceptions, NaN or out-of-range energy/soil/trees, every event ended, save/load mid-event kept it running, per-tick cost normal) plus a read-through of each file for energy conservation and logic: no bugs found. Design gap at the time: simlets didn't sense fire, so they didn't flee it (deaths were low: 17 in 40k ticks). Fixed by hazard sensing (§9k).
 
 **Rates retuned after Joe's playtest ("far too often, always flooding"):** frequencies above are the new defaults, with the slider max raised to 120,000. Over 40k ticks on seeds 11/12/13 that gives 2–5 events per run (it was 9–12), and lowest populations of 52 / 25 / 49. With fewer fires, forest creeps a little more: 27 / 44 / 24% at 40k, against 46% on seed 12 with events off.
 

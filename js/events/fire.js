@@ -23,6 +23,7 @@ const FIRE_ASH_FADE = 4000;      // ticks the ash tint takes to fade
 // shared fire map: which tiles are burning right now (any fire), and the burn scars (tile -> tick it went out)
 const Fire = {
   burning: new Uint8Array(WORLD_W * WORLD_H),
+  alight: 0,                     // how many tiles are burning now: simlets only look for fire while this is > 0
   ash: new Map(),
 
   fuel(i) {
@@ -35,7 +36,7 @@ const Fire = {
 
   ignite(ev, i, tick) {
     const f = this.fuel(i);
-    this.burning[i] = 1; ev.burnt.add(i);
+    this.burning[i] = 1; this.alight++; ev.burnt.add(i);
     ev.tiles.push([i, tick + Math.round(FIRE_BURN * (1 + f)), f]);
     this.burnFood(i, true);
   },
@@ -47,7 +48,7 @@ const Fire = {
   },
   // the tile goes out: trees gone, ash feeds the soil (may go above what moisture supports; it leaches back)
   burnOut(i, fuel, tick) {
-    this.burning[i] = 0;
+    if (this.burning[i]) { this.burning[i] = 0; this.alight--; }
     World.clearTrees(i);
     World.setSoil(i, World.soil[i] + FIRE_ASH_MIN + FIRE_ASH_FUEL * fuel);
     this.ash.set(i, tick);
@@ -69,7 +70,7 @@ const Fire = {
 
 defineEvent({
   key: 'fire', every: 15000, name: 'Fire', color: '#ef5b3c', needsPoint: true,
-  tip: `A wildfire. Automatic fires start in a random forest tile (else scrub); in bust only ${FIRE_BUST_START * 100}% of them take hold, so they come mostly in the dry boom. The button lights one where you click. Every ${FIRE_STEP} ticks each burning tile may set its 8 neighbours alight: likelier the more trees they have, less on moist land near water and in bust; bare ground, water and floodwater stop it, and shelters burn like scrub. A tile burns ${FIRE_BURN}-${2 * FIRE_BURN} ticks, then its trees are gone and ash enriches its soil. Food on burning tiles is destroyed, simlets standing in it lose energy fast, and shelters lose health until they collapse. Burnt ground stays dark for a while.`,
+  tip: `A wildfire. Automatic fires start in a random forest tile (else scrub); in bust only ${FIRE_BUST_START * 100}% of them take hold, so they come mostly in the dry boom. The button lights one where you click. Every ${FIRE_STEP} ticks each burning tile may set its 8 neighbours alight: likelier the more trees they have, less on moist land near water and in bust; bare ground, water and floodwater stop it, and shelters burn like scrub. A tile burns ${FIRE_BURN}-${2 * FIRE_BURN} ticks, then its trees are gone and ash enriches its soil. Food on burning tiles is destroyed, simlets standing in it lose energy fast (they sense fire within 6 tiles and try to escape it), and shelters lose health until they collapse. Burnt ground stays dark for a while.`,
   params: [
     ['Fire', 'fireSpread', 'Fire spread chance',         0, 1,    0.01,  0.25],
     ['Fire', 'fireMax',    'Fire max size (tiles)',      50, 5000, 50,   1500],
@@ -153,7 +154,7 @@ defineEvent({
 
   end(ev) {
     let out = false;                                                      // stopped early: put out what is still alight
-    for (const t of ev.tiles) { Fire.burning[t[0]] = 0; out = true; }
+    for (const t of ev.tiles) { if (Fire.burning[t[0]]) { Fire.burning[t[0]] = 0; Fire.alight--; } out = true; }
     ev.tiles = [];
     if (out) World.refreshLand();
     for (const s of Sim.simlets) if (s.fx.fire !== undefined) delete s.fx.fire;
@@ -178,7 +179,7 @@ defineEvent({
   save(ev) { return { tiles: ev.tiles, burnt: [...ev.burnt], died: ev.died, huts: ev.huts }; },
   load(ev, d) {
     ev.tiles = d.tiles; ev.burnt = new Set(d.burnt); ev.died = d.died || 0; ev.huts = d.huts || 0;
-    for (const t of ev.tiles) Fire.burning[t[0]] = 1;
+    for (const t of ev.tiles) if (!Fire.burning[t[0]]) { Fire.burning[t[0]] = 1; Fire.alight++; }
   },
 });
 
@@ -186,7 +187,7 @@ defineEvent({
 // event overlays (Events.draw only draws active events)
 registerSystem({ name: 'fireAsh', phase: 'post', every: 500,
   update(tick) { for (const [i, t] of Fire.ash) if (tick - t >= FIRE_ASH_FADE) Fire.ash.delete(i); },
-  reset() { Fire.ash.clear(); Fire.burning.fill(0); },
+  reset() { Fire.ash.clear(); Fire.burning.fill(0); Fire.alight = 0; },
   save() { return [...Fire.ash]; },
   load(o) { Fire.ash = new Map(o); },
 });

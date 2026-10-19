@@ -1,13 +1,17 @@
 'use strict';
 // Hybrid brain: a small neural network whose outputs are ADDED to the rule-based action scores.
 // Output weights start at zero, so a new brain changes nothing; evolution grows corrections that
-// can eventually override the rules. Brain weights are a second chromosome, separate from the 24 trait genes
+// can eventually override the rules. Brain weights are a second chromosome, separate from the trait genes
 // (species similarity keeps using trait genes only).
 
 const BRAIN_IN = ['energy', 'hunger', 'stamina', 'exhausted', 'threat', 'threatNear', 'prey', 'preyNear',
                   'preySize', 'food', 'foodNear', 'night', 'bust', 'kin', 'ready', 'age',
-                  'inForest', 'onWater', 'freshSoil', 'scent', 'shelterNear', 'storeFull', 'buildSite', 'timeToBust', 'timeToBoom', 'bias'];
-const BRAIN_OUT = ['flee', 'hunt', 'eat', 'recall', 'breed', 'clone', 'farm', 'rest', 'wander', 'track', 'build', 'shelter', 'draw'];
+                  'inForest', 'onWater', 'freshSoil', 'scent', 'shelterNear', 'storeFull', 'buildSite', 'timeToBust', 'timeToBoom',
+                  'fire', 'flood', 'bias'];
+const BRAIN_OUT = ['flee', 'hunt', 'eat', 'recall', 'breed', 'clone', 'farm', 'rest', 'wander', 'track', 'build', 'shelter', 'draw', 'escape'];
+// The layout before hazard sensing (saves without brainIn/brainOut use it): 26 inputs, 13 outputs
+const BRAIN_IN_V4 = BRAIN_IN.filter(k => k !== 'fire' && k !== 'flood');
+const BRAIN_OUT_V4 = BRAIN_OUT.filter(k => k !== 'escape');
 const NI = BRAIN_IN.length, NH = 8, NO = BRAIN_OUT.length;
 const W1_LEN = NI * NH;                       // input -> hidden (the 'bias' input acts as hidden bias)
 const BRAIN_LEN = W1_LEN + (NH + 1) * NO;     // hidden -> output, plus one output bias row
@@ -52,6 +56,25 @@ function runBrain(b, x, out) {
     for (let h = 0; h < NH; h++) sum += _hid[h] * b[W1_LEN + h * NO + o];
     out[o] = sum;
   }
+}
+
+// Convert a brain saved with another layout (inputs inNames, outputs outNames) to the current one, matching
+// weights by input and output NAME. Inputs or outputs the old brain lacked get zero weights, so a converted
+// brain behaves exactly as it did (a new input has no effect until mutation grows its weights). Returns null if the
+// weights don't fit the stated layout.
+function remapBrain(old, inNames, outNames) {
+  const oi = inNames.length, oo = outNames.length;
+  if (!old || old.length !== oi * NH + (NH + 1) * oo) return null;
+  const b = new Float32Array(BRAIN_LEN);
+  for (let i = 0; i < NI; i++) {
+    const j = inNames.indexOf(BRAIN_IN[i]); if (j < 0) continue;
+    for (let h = 0; h < NH; h++) b[i * NH + h] = old[j * NH + h];
+  }
+  for (let o = 0; o < NO; o++) {
+    const j = outNames.indexOf(BRAIN_OUT[o]); if (j < 0) continue;
+    for (let h = 0; h <= NH; h++) b[W1_LEN + h * NO + o] = old[oi * NH + h * oo + j];   // h = NH: output bias row
+  }
+  return b;
 }
 
 // Rough "which input pushes which action" map: W1·W2 (ignores the tanh), for the inspector heat-map

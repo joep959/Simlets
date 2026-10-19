@@ -49,7 +49,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## State and open threads (update this when they change)
 
-- **Branches:** `main` = everything (`ui` merged 2026-10-19, including the brush lag / gap fix). `ui`, `events`, `shelters`, `hybrid-brain`, `land-rework` and the `event-*` branches are all merged and can be deleted.
+- **Branches:** `main` = everything (`ui` merged 2026-10-19, including the brush lag / gap fix). `ui`, `events`, `shelters`, `hybrid-brain`, `land-rework` and the `event-*` branches are all merged and can be deleted. `hazards` = hazard sensing (DESIGN.md §9k, save v5), awaiting Joe's playtest and merge.
 - **Built:** everything in README.md and DESIGN.md §9–15. That includes:
   - 28 genes, the latest being building, thrift and resistance
   - the hybrid brain
@@ -62,5 +62,5 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
   - events rare: Joe found them far too frequent at first
   - floods destroy fields, houses and trees
   - the phone runs the sim itself, served from the PC
-- **Next and docket:** DESIGN.md §13 (performance pass and hazard sensing first, then a big feature).
+- **Next and docket:** DESIGN.md §13 (performance pass first, then a big feature; hazard sensing is built on `hazards`).
 - **Known weak spot:** carnivore persistence. Bottleneck measured as encounter rate (DESIGN.md §12). The carnivore autopsy approach (energy ledger, causes of death, prey-in-range) is worth recreating for any balance question.

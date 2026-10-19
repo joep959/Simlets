@@ -2,7 +2,7 @@
 // Save / load the whole world (map, soil, scent, food, simlets with genes + brains, species, history, settings)
 // as one JSON file, so long experiments survive a page reload and can be branched.
 
-const SAVE_VERSION = 4;                                     // 4: living land (tree cover); 3 still loads
+const SAVE_VERSION = 5;                                     // 5: brain layout saved (hazard inputs); 4: living land (tree cover); 3 still loads
 // Optional fields added since v4 (older v4 files simply lack them): systems (per-system state, see registerSystem),
 // world.flood, simlet fx. Terrain is one base-36 character per tile (World.encodeTerrain).
 const r4 = v => Math.round(v * 1e4) / 1e4;                  // trim floats so the file stays a sensible size
@@ -25,7 +25,7 @@ const Save = {
     Food.forEach(f => foods.push([r4(f.x), r4(f.y), r4(f.e), r4(f.e0 || 0), f.born, f.ready, f.type, f.rot || 0]));
     return {
       version: SAVE_VERSION, savedAt: new Date().toISOString(),
-      params: { ...P }, brainMode: Brain.mode, nextId: NEXT_ID,
+      params: { ...P }, brainMode: Brain.mode, nextId: NEXT_ID, brainIn: BRAIN_IN, brainOut: BRAIN_OUT,
       world: {
         terrain: World.encodeTerrain(), soil: packF(World.soil), trees: packF(World.trees), scent: packF(World.scent),
         iceNoise: packF(World.iceNoise), tilled: [...World.tilled], flood: World.floodTiles.size ? [...World.floodTiles] : undefined,
@@ -51,7 +51,11 @@ const Save = {
   },
 
   restore(o) {
-    if (!o || (o.version !== SAVE_VERSION && o.version !== 3)) throw new Error('Not a Simlets world file (or a newer version)');
+    if (!o || !(o.version >= 3 && o.version <= SAVE_VERSION)) throw new Error('Not a Simlets world file (or a newer version)');
+    // brains are matched to the current network by input/output name (older files: the layout before hazard sensing);
+    // a brain that doesn't fit its stated layout gets a fresh neutral one
+    const bIn = o.brainIn || BRAIN_IN_V4, bOut = o.brainOut || BRAIN_OUT_V4;
+    const loadBrain = w => (w && remapBrain(w, bIn, bOut)) || newBrain();
     // settings first (derived body stats depend on them)
     Object.assign(P, o.params); Brain.mode = o.brainMode || 'hybrid';
     // map with its living layers; a version 3 file (painted types, no trees) is converted like an old map file
@@ -90,7 +94,7 @@ const Save = {
         id: d.id, heading: d.heading, desired: d.heading, origin: d.origin, age: d.age, energy: d.energy,
         stam: d.stam, exhausted: d.exhausted, children: d.children, kills: d.kills, farmed: d.farmed, donated: d.donated,
         attackCd: d.attackCd, breedCd: d.breedCd, alarmCd: d.alarmCd, breedMode: d.breedMode, readySince: d.readySince,
-        memory: d.memory || [], field: d.field, brain: d.brain ? Float32Array.from(d.brain) : newBrain(),
+        memory: d.memory || [], field: d.field, brain: loadBrain(d.brain),
         species: Species.live.get(d.species) || null, needThink: true, built: d.built || 0, home: d.home ?? null, project: d.project ?? null,
         inShelter: d.inShelter != null ? Shelters.tiles.get(d.inShelter) || null : null, fx: d.fx || {},
       });

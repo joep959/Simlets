@@ -64,6 +64,48 @@ class Simlet {
   }
 }
 
+// ---------- HAZARD SENSING (fire, floodwater) ----------
+// Burning tiles (Fire.burning, events/fire.js) and floodwater (World.flood) are sensed all round (heat, smoke and the
+// sound of water carry; no vision cone), out to HAZARD_R tiles or the current vision range if that is shorter (night,
+// forest). Cheap: nothing at all unless a fire is alight or a flood is up somewhere; then the simlet's own tile plus
+// 8 directions × 3 distances (25 tile lookups), no map scans.
+//   fire / flood: danger 0..1 = 1 on the tile itself, else the closest sensed tile's closeness 1 − 0.8·d/HAZARD_R
+//   (fx, fy) / (wx, wy): direction away from the sensed burning / flooded tiles (closeness-weighted, not normalised);
+//   standing in floodwater also adds the uphill direction of World.waterDist (away from the river or lake), which
+//   leads to dry land even when every sampled tile is flooded.
+const HAZARD_R = 6;
+const HAZARD_UX = [1, Math.SQRT1_2, 0, -Math.SQRT1_2, -1, -Math.SQRT1_2, 0, Math.SQRT1_2];
+const HAZARD_UY = [0, Math.SQRT1_2, 1, Math.SQRT1_2, 0, -Math.SQRT1_2, -1, -Math.SQRT1_2];
+const _haz = { fire: 0, flood: 0, onFlood: false, fx: 0, fy: 0, wx: 0, wy: 0 };
+function senseHazards(s, range) {
+  const h = _haz;
+  h.fire = 0; h.flood = 0; h.onFlood = false; h.fx = 0; h.fy = 0; h.wx = 0; h.wy = 0;
+  const B = typeof Fire !== 'undefined' && Fire.alight > 0 ? Fire.burning : null;
+  const F = World.floodTiles.size ? World.flood : null;
+  if (!B && !F) return h;
+  const tx = s.x | 0, ty = s.y | 0, i0 = ty * WORLD_W + tx;
+  if (B && B[i0]) h.fire = 1;
+  if (F && F[i0]) {
+    h.flood = 1; h.onFlood = true;
+    const wd = World.waterDist;                      // uphill = away from the permanent water the flood came from
+    const gx = (tx < WORLD_W - 1 ? wd[i0 + 1] : wd[i0]) - (tx > 0 ? wd[i0 - 1] : wd[i0]);
+    const gy = (ty < WORLD_H - 1 ? wd[i0 + WORLD_W] : wd[i0]) - (ty > 0 ? wd[i0 - WORLD_W] : wd[i0]);
+    if (Math.abs(gx) < 10 && Math.abs(gy) < 10) { h.wx += gx * 0.5; h.wy += gy * 0.5; }   // (1e9 = no water on the map)
+  }
+  const r = Math.min(range, HAZARD_R);
+  for (let k = 1; k <= 3; k++) {
+    const d = r * k / 3, c = 1 - 0.8 * d / HAZARD_R;
+    for (let a = 0; a < 8; a++) {
+      const x = (s.x + HAZARD_UX[a] * d) | 0, y = (s.y + HAZARD_UY[a] * d) | 0;
+      if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) continue;
+      const i = y * WORLD_W + x;
+      if (B && B[i]) { h.fx -= HAZARD_UX[a] * c; h.fy -= HAZARD_UY[a] * c; if (c > h.fire) h.fire = c; }
+      if (F && F[i]) { h.wx -= HAZARD_UX[a] * c; h.wy -= HAZARD_UY[a] * c; if (c > h.flood) h.flood = c; }
+    }
+  }
+  return h;
+}
+
 // ---------- SENSE + DECIDE ----------
 function think(s, sim) {
   const g = s.g, tick = sim.tick;
@@ -155,6 +197,11 @@ function think(s, sim) {
     if (v > scentBest) { scentBest = v; scentDir = a; }
   }
   const smelt = scentBest > s.scentThreshold ? clamp(scentBest / 1.0, 0, 1) : 0;   // 0 = smells nothing
+  // hazards: fire is deadly, so escaping it scales with the Flee gene but never drops below half strength (an instinct);
+  // floodwater only slows and costs energy, so wading out is a Water aversion matter, and only when standing in it
+  const hz = senseHazards(s, range);
+  const fireDanger = hz.fire, floodDanger = hz.flood;
+  const escapeScore = Math.max(2.4 * fireDanger * (0.5 + 0.5 * g[G.flee]), hz.onFlood ? 0.9 * g[G.waterAversion] : 0);
   const farmable = !!hereInfo.farmKey;
   // hard limits = physically possible; judgements (hungry? danger?) are soft penalties the brain can learn to overrule
   const canFarm = farmable && s.energy >= P.farmCost * 1.5;
@@ -181,6 +228,7 @@ function think(s, sim) {
     shelter: home ? (0.25 + 0.5 * g[G.rest]) * (night ? 1.6 : 0.6) * (World.season(tick) ? 1.5 : 1) * (threat ? 2 : 1) * (food ? 0.5 : 1) / (1 + home.d / 20) : 0,
     // eat from the family granary (crops are plants); thrifty simlets save it unless there's no wild food or they're starving
     draw:   store ? drive * 1.1 * s.plantEff * (ef < 0.2 ? 1 : 1 - g[G.thrift] * (food ? 1 : 0.6)) : 0,
+    escape: escapeScore,                               // get away from fire / out of floodwater
   };
   if (s.alertTimer > 0 && s.alert) sc.flee = Math.max(sc.flee, g[G.flee] * 0.8);
   // hybrid brain: the network adds a learned correction to each available action's score
@@ -197,11 +245,12 @@ function think(s, sim) {
     x[20] = home ? Math.max(0, 1 - home.d / SHELTER_R) : 0; x[21] = store ? Math.min(1, store.sh.store / STORE_CAP) : 0; x[22] = site ? 1 : 0;
     { const bust = World.season(tick) === 1, left = 1 - World.seasonProgress(tick);
       x[23] = bust ? 0 : left; x[24] = bust ? left : 0; }                         // how much boom / bust is left
-    x[25] = 1;
+    x[25] = fireDanger; x[26] = floodDanger;                                      // hazards sensed nearby (1 = standing in it)
+    x[27] = 1;
     runBrain(s.brain, x, out);
     const avail = { flee: !!(threat || (s.alertTimer > 0 && s.alert)), hunt: !!prey, eat: !!food, recall: !!mem,
                     breed: !!(seekMate && mate), clone: cloneNow, farm: canFarm, rest: true, wander: true, track: smelt > 0,
-                    build: canBuild, shelter: !!home, draw: !!store };
+                    build: canBuild, shelter: !!home, draw: !!store, escape: fireDanger > 0 || floodDanger > 0 };
     s.baseScores = { ...sc };
     let corr = 0;
     BRAIN_OUT.forEach((k, o) => {
@@ -272,6 +321,14 @@ function think(s, sim) {
       break;
     }
     case 'draw':   toward(store.sh.x, store.sh.y); speed = ms * 0.75; s.target = store.sh; break;
+    case 'escape': {                                // away from the sensed fire (weighted 3×) and floodwater
+      let ex = hz.fx * 3 + hz.wx, ey = hz.fy * 3 + hz.wy;
+      if (ex === 0 && ey === 0) { ex = hx; ey = hy; }  // no direction sensed (e.g. only its own tile): keep going
+      const d = Math.hypot(ex, ey); vx = ex / d; vy = ey / d;
+      s.sprinting = fireDanger > 0 && !s.exhausted && Math.random() < g[G.sprint];
+      speed = ms * (s.sprinting ? P.sprintMult : 1);
+      break;
+    }
     case 'wander': {
       const a = s.heading + gauss() * 0.25;          // small wobble on current heading = smooth exploring
       vx = Math.cos(a); vy = Math.sin(a);
@@ -290,6 +347,14 @@ function think(s, sim) {
     const kn = Math.hypot(kinX, kinY);
     if (kn > 0 && best !== 'flee' && best !== 'hunt') { vx += kinX / kn * g[G.kinPull] * 0.8; vy += kinY / kn * g[G.kinPull] * 0.8; }
     vx += sepX * 2; vy += sepY * 2;
+    if (fireDanger > 0) {                          // whatever it is doing, veer away from fire
+      const d = Math.hypot(hz.fx, hz.fy);
+      if (d > 0) { vx += hz.fx / d * 1.5 * fireDanger; vy += hz.fy / d * 1.5 * fireDanger; }
+    }
+    if (hz.onFlood) {                              // wading: steer for dry land (the water probe below is off when wet)
+      const d = Math.hypot(hz.wx, hz.wy);
+      if (d > 0) { vx += hz.wx / d * g[G.waterAversion] * 0.9; vy += hz.wy / d * g[G.waterAversion] * 0.9; }
+    }
     if (!World.wet(s.x, s.y)) {                    // probe ahead for open water (ice is fine), push away by aversion gene
       const w = g[G.waterAversion] * 0.9, base = Math.atan2(vy, vx);
       for (const off of [-0.5, 0, 0.5]) {
@@ -315,6 +380,8 @@ function act(s, sim) {
     s.stam = Math.min(s.staminaMax, s.stam + s.staminaRegen * (s.action === 'rest' ? 2 : 1));
     if (s.exhausted && s.stam > 0.3 * s.staminaMax) s.exhausted = false;
   }
+  // the ground underfoot caught fire since the last decision: decide again now rather than at the next think
+  if (s.action !== 'escape' && typeof Fire !== 'undefined' && Fire.alight > 0 && Fire.burning[(s.y | 0) * WORLD_W + (s.x | 0)]) s.needThink = true;
   s.heading += clamp(wrapAngle(s.desired - s.heading), -0.3, 0.3);
   const here = World.at(s.x, s.y), hereInfo = TERRAIN_INFO[here];
   const inWater = World.wet(s.x, s.y);            // open water; frozen water walks like land

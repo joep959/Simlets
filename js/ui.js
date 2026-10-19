@@ -652,11 +652,14 @@ const BRAIN_INPUT_TIPS = {
   inForest: 'Standing in forest (1 = yes): cover, shelter from winter cold, shorter sight',
   onWater: 'Standing in open water (1 = yes; ice does not count)',
   freshSoil: 'Standing on farmable land with fresh (non-exhausted) soil (1 = yes)',
+  fire: 'Fire nearby: 1 = standing on a burning tile, falling to 0.2 for a burning tile 6 tiles away (sensed all round, out to 6 tiles or its sight if shorter); 0 = none',
+  flood: 'Floodwater nearby: 1 = wading in it, falling to 0.2 for flooded land 6 tiles away (sensed like fire); 0 = none. Permanent water does not count',
   bias: 'Constant input that is always 1: the brain\'s default leaning, whatever the situation',
 };
 const BRAIN_ACTION_NAMES = {
   flee: 'Flee', hunt: 'Hunt', eat: 'Eat', recall: 'Go to remembered food', breed: 'Seek a mate',
   clone: 'Clone (asexual breeding)', farm: 'Farm', rest: 'Rest', wander: 'Wander', track: 'Track a scent trail', build: 'Build / repair shelter', shelter: 'Go inside shelter', draw: 'Eat from family store',
+  escape: 'Escape fire / floodwater',
 };
 
 // What the simlet is currently doing (the action that scored highest at its last decision)
@@ -666,6 +669,7 @@ const ACTION_TIPS = {
   recall: 'Heading back to a food spot it remembers.',
   hunt: 'Chasing a simlet to attack it.',
   flee: 'Running from a threat it can see, or one a relative warned it about.',
+  escape: 'Getting away from a fire it senses (may sprint), or wading out of floodwater towards dry land. Rule score: 2.4 × fire closeness × (0.5 + 0.5 × Flee gene), or 0.9 × Water aversion gene while standing in floodwater.',
   breed: 'Approaching a compatible mate.',
   sow: 'Walking to fresh soil to plant: the ground here is exhausted.',
   build: 'Building or repairing a family shelter (paying energy, 40 ticks per work session).',
