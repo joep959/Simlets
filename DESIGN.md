@@ -351,13 +351,19 @@ Simlets used to stand in fires and wade about in floods because nothing told the
 
 - **Carnivores are fragile:** they persist at low numbers in some runs and die out in others. Slower plant eating, optimal foraging and diet-aware targeting didn't fix it on their own (immigration helps sometimes).
   - **Measured bottleneck (Oct 2026 autopsy):** a carnivore has any plant-eater within vision on only 2–17% of its decisions, so it spends 40–50% of its time wandering and 17–45% resting, and hunts 0.5–6% of the time.
-  - It's an **encounter-rate** problem: predators have no way to track prey beyond line of sight.
+  - At the time this looked like an **encounter-rate** problem. Scent tracking (§9f) was added afterwards; the Oct 19 investigation below shows encounter is *not* the main bottleneck.
   - **Later tests (Oct 2026):**
     - Chase autopsy: hunting works when prey is seen (62–82% of the time; 24% of hunts kill).
     - Normal seeding starts carnivores 20–35 tiles from prey, beyond sight.
     - Seeding tribes close together (`seedSpread` 0.3) plus a full-energy start (`founderEnergy` 1) raised carnivore kills 2–20× but still didn't make them persist, and crowding hurt overall stability. Defaults were left at 1 / 0.7.
     - In one baseline run, carnivores boomed to about 300 and crashed the prey population: classic predator overshoot. Once established, they can thrive; founding is the hard part.
     - Lean predator founders (`leanPredators` 0.6, upkeep genes pulled toward moderate), alone and with full founder energy: no reliable improvement over 18 runs. Carnivores established in about 1 run in 9 regardless of lever (when they do, they persist and cycle, peaking near 340). Establishment looks like a **lottery**; more founding attempts (immigration, air-drops) is the realistic way to win it. Default left at 0.
+  - **Investigation, 19 Oct 2026** (all measured; scripts in `tools/arena/`):
+    - *Start-up carrion* (meat spawned for the first 1–2 years, tapered): carnivores lived on carrion (79–93% of their energy) instead of hunting, then crashed within ~4k ticks of it stopping. Dropped.
+    - *Tracking autopsy* (6 maps): in founding, a carnivore's "prey" in view was usually kin (67–98%), which switched tracking off on 25–60% of decisions; when it did track, only 21–39% of episodes ended closer to prey. A fix (kin don't block tracking, 8-way sniff, sticky tracking) raised tracking from 8% to 56% of decisions but made things worse (carnivores at 40k on 1/12 maps vs 5/12): trails mark where herds lingered, not where they went, and tracking at 0.8× top speed burns energy. Reverted.
+    - *Predator arena* (`tools/arena/`): grown worlds with carnivores stripped; 10 designed carnivores dropped in the herd, 12 or 30 tiles away; one year; the lineage's encounter, capture, energy per kill, attack cost and births logged. 88 random carnivore genomes: **1 of 88 lineages alive after a year, none grew**, even dropped inside a herd; 93% of deaths starvation; prey in view on ~50% of decisions, ~55% of attacks kill. **Encounter and capture work; the energy budget doesn't.** Prey evolve tiny when nothing hunts them (median mass 0.6 on one map: ~9 energy per kill). Genes that helped: slow, low sprint, low camo (cheap to run), higher breeding threshold.
+    - *Rule tests* (8 paired runs each, edge drop, energy per 1k carnivore-ticks): base 58 intake / 0.4 births per founder; attack cost ×0.25 doubles lifespan but no more births; meat ×2 (not conserving) 1.0 births; **meat ×3 + cheap attacks: 6/8 alive, 1.5 births per founder** (the threshold). Energy-conserving bundles (cheap attacks, full corpses, slower rot, cheaper resting, a digesting stomach) triple lifespan but births stay 0.2–0.4 (intake ~60 vs ~100 needed). A bigger carnivore tank is a trap: breeding triggers at a fraction of the tank, so they never breed.
+    - **Diagnosis (inferred, being tested):** breeding charges a lump sum (half the parent's energy) once energy passes a threshold. That suits steady grazers and penalises feast-and-famine hunters, which are hungry 85–99% of the time. Next: **gestation** (Joe's idea): conceive, then pay into the litter from intake over a gene-set gestation period, babies born at consistent energy. Prototyping in the arena first.
 - Behaviour rules are fixed; only their weights evolve. Evolved brains (neuroevolution) would be v2.
 - There are no sexes, so there's no real cost of sex.
 
@@ -373,8 +379,9 @@ Simlets used to stand in fires and wade about in floods because nothing told the
 - hazard sensing: fire and floodwater, Escape action, brain inputs (§9k)
 
 **Suggested next, in order:**
-1. **Performance pass:** large populations slow down because every think scans neighbours and food. It matters more now that phones run the simulation themselves (§15).
-2. **Then one of the big features below.**
+1. **Carnivores (in progress):** gestation prototype in the predator arena, then the full rework if it lifts carnivore births (§12, 19 Oct investigation).
+2. **Performance pass:** large populations slow down because every think scans neighbours and food. It matters more now that phones run the simulation themselves (§15).
+3. **Then one of the big features below.**
 
 **Big features (Joe's docket):**
 - **Dynamic water:** simlets divert water, dig channels or irrigation, and build reservoirs, so water itself becomes part of the living land. Moisture already follows water automatically (§9j).
@@ -395,7 +402,8 @@ Simlets used to stand in fires and wade about in floods because nothing told the
 - a cost-of-sex slider
 - a separate immigrant group size
 - a night-shading slider
-- prey tracking (memory / scent) and prey choice by expected gain (parked by Joe)
+- prey memory and prey choice by expected gain (parked by Joe; scent tracking is built, §9f)
+- replace the fixed attack cooldown (30 ticks) with stamina / energy limits (Joe; not a bottleneck: carnivores attack ~5 times per 1k ticks, the cooldown allows 33)
 - farm-site choice to spread fields onto grassland (parked by Joe)
 - field defence
 - mountains that block line of sight

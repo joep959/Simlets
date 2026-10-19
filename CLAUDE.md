@@ -35,6 +35,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 - **Headless balance runs:** `node tools/headless.js 20000 "{\"param\":value}" 2000`. Runs the real sim files in Node. Use several seeds (maps are random); run them in parallel in the background since each takes about 1–5 minutes.
 - **Land and paired runs:** `node tools/landprobe.js js 40000 "{}" 4000 1 "CONST=v" 11` adds land shares and churn, a seed for identical maps, and overrides for constants that aren't sliders. Keep a `git worktree` of main as the baseline.
+- **Predator arena:** `tools/arena/` (see the header of `arena.js`). `node tools/arena/arena.js grow . <seed> <snap.json>` grows a world and strips its carnivores; `runner.js <jobs.json> <results.jsonl> <parallel>` runs drop-in jobs (resumable); `analyze.js` summarises. Run at most ~6 in parallel at below-normal priority (Joe's PC has 16 GB), and size batches to the question (8 paired runs per setup was enough).
 - **Browser checks:** headless Edge (`msedge --headless=new --screenshot` / `--dump-dom`) with a scratch copy of index.html that:
   - adds `<base href="file:///<repo folder>/">` (Joe works on more than one machine, so use this clone's actual path)
   - replaces `requestAnimationFrame` with `setTimeout`
@@ -62,5 +63,5 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
   - events rare: Joe found them far too frequent at first
   - floods destroy fields, houses and trees
   - the phone runs the sim itself, served from the PC
-- **Next and docket:** DESIGN.md §13 (performance pass, then a big feature; hazard sensing is built).
-- **Known weak spot:** carnivore persistence. Bottleneck measured as encounter rate (DESIGN.md §12). The carnivore autopsy approach (energy ledger, causes of death, prey-in-range) is worth recreating for any balance question.
+- **Next and docket:** DESIGN.md §13 (carnivore gestation prototype, then performance pass, then a big feature; hazard sensing is built).
+- **Known weak spot:** carnivore persistence. The 19 Oct 2026 investigation (DESIGN.md §12) found encounter and capture work; the energy budget and lump-sum breeding don't. Next: gestation prototype in the predator arena (`tools/arena/`), then the rework if it helps. Use the arena (controlled drops, stage-by-stage ledger, paired 8-run setups) for balance questions rather than long end-to-end lottery runs.
