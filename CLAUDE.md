@@ -49,13 +49,7 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
 
 ## State and open threads (update this when they change)
 
-- **Branches:** `main` = up to the land rework. `ui` = everything newest, being playtested; merge it into main when Joe says so:
-  - the events framework and six events (DESIGN.md §14)
-  - the moisture fix
-  - the new desktop / phone UI (§15)
-  - rarer events and destructive floods
-
-  `events` is fully contained in `ui`. `shelters`, `land-rework` and the `event-*` branches are merged and can be deleted.
+- **Branches:** `main` = everything (`ui` merged 2026-10-19, including the brush lag / gap fix). `ui`, `events`, `shelters`, `hybrid-brain`, `land-rework` and the `event-*` branches are all merged and can be deleted.
 - **Built:** everything in README.md and DESIGN.md §9–15. That includes:
   - 28 genes, the latest being building, thrift and resistance
   - the hybrid brain
