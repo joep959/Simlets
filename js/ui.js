@@ -350,7 +350,7 @@ const UI = {
       }
       if (!drag) return;
       if (Math.hypot(px - drag.sx, py - drag.sy) > (e.pointerType === 'touch' ? 10 : 4)) drag.moved = true;
-      if (drag.paint) this.paintAt(px, py);
+      if (drag.paint) this.paintLine(drag.px, drag.py, px, py);
       else {
         Render.cam.x -= (px - drag.px) / Render.cam.zoom; Render.cam.y -= (py - drag.py) / Render.cam.zoom;
         if (drag.moved) this.follow = false;
@@ -383,6 +383,12 @@ const UI = {
   paintAt(px, py) {
     const [x, y] = Render.toWorld(px, py);
     World.paint(x, y, this.brushSize, this.brush);
+  },
+  // stamp the brush along the segment between two pointer positions, so a fast stroke leaves no gaps
+  paintLine(px0, py0, px1, py1) {
+    const [x0, y0] = Render.toWorld(px0, py0), [x1, y1] = Render.toWorld(px1, py1);
+    const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / Math.max(0.5, this.brushSize / 2)));   // stamps half a radius apart
+    for (let k = 1; k <= n; k++) World.paint(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, this.brushSize, this.brush);
   },
 
   // ---- left-panel live readouts ----

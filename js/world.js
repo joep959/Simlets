@@ -255,14 +255,16 @@ const World = {
         if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) continue;
         if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 > r2) continue;
         const i = y * WORLD_W + x, water = this.terrain[i] === TERRAIN.WATER;
-        if (brush === 'water') { this.terrain[i] = TERRAIN.WATER; this.trees[i] = 0; this.setSoil(i, 1); continue; }
-        if (brush === 'land') { this.terrain[i] = TERRAIN.GRASS; this.trees[i] = 0; this.setSoil(i, water ? 0.5 : this.soilCap(i)); }
-        else if (water) continue;                                     // forest and enrich only work on land
-        else if (brush === 'forest') this.trees[i] = 1;
-        else if (brush === 'enrich') this.setSoil(i, 1);
-        this.terrain[i] = this.deriveType(i);
+        if (brush === 'water') { this.terrain[i] = TERRAIN.WATER; this.trees[i] = 0; this.setSoil(i, 1); }
+        else {
+          if (brush === 'land') { this.terrain[i] = TERRAIN.GRASS; this.trees[i] = 0; this.setSoil(i, water ? 0.5 : this.soilCap(i)); }
+          else if (water) continue;                                   // forest and enrich only work on land
+          else if (brush === 'forest') this.trees[i] = 1;
+          else if (brush === 'enrich') this.setSoil(i, 1);
+          this.terrain[i] = this.deriveType(i);
+        }
+        this.look[i] = this.lookKey(i); this.redraw.push(i);          // repaint just this tile, not the whole map
       }
-    this.dirty = true;
   },
 
   fill(type) {
