@@ -1,5 +1,7 @@
 # CLAUDE.md: Simlets project
 
+**At the start of every session, read `STATUS.md` first.** It holds the current work, findings, the agreed next step and how to reproduce experiments. Keep it updated as work changes (Joe moves between machines, so it is the handoff), and commit it.
+
 Personal play/learning project of Joe's (not Paradigm work, so no confidentiality limits). Joe wants Claude as **educator, mentor and coder**: explain concepts as they come up, tie them to his career (satcom, test automation, optimisation), and keep answers short (see the global CLAUDE.md). Read `README.md` for the user view and `DESIGN.md` for the mechanics and formulas before changing behaviour.
 
 ## Architecture
@@ -63,5 +65,5 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
   - events rare: Joe found them far too frequent at first
   - floods destroy fields, houses and trees
   - the phone runs the sim itself, served from the PC
-- **Next and docket:** DESIGN.md §13 (carnivore gestation prototype, then performance pass, then a big feature; hazard sensing is built).
-- **Known weak spot:** carnivore persistence. The 19 Oct 2026 investigation (DESIGN.md §12) found encounter and capture work; the energy budget and lump-sum breeding don't. Next: gestation prototype in the predator arena (`tools/arena/`), then the rework if it helps. Use the arena (controlled drops, stage-by-stage ledger, paired 8-run setups) for balance questions rather than long end-to-end lottery runs.
+- **Next and docket:** DESIGN.md §13 (carnivores: see STATUS.md, then performance pass, then a big feature; hazard sensing is built).
+- **Known weak spot:** carnivore persistence: current work, see `STATUS.md` (findings in DESIGN.md §12). Use the arena (controlled drops, stage-by-stage ledger, paired 8-run setups) for balance questions rather than long end-to-end lottery runs.
