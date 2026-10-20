@@ -44,7 +44,12 @@ if (J0.stomachX) {
   }
   const amt = Math.min(f.e, f.type === 2 ? MEAT_BITE : P.plantBite);`);
 }
-rep("s.action === 'rest' || s.action === 'farm' || s.working ? 0.4 : 1)", `s.action === 'rest' ? (s.g[G.diet] > 0.66 ? 0.4 * ${J0.restX || 1} : 0.4) : s.action === 'farm' || s.working ? 0.4 : 1)`);
+// deepRest (job.deepRest = extra think ticks at rest gene 1): for every simlet the rest gene also sets how deep rest is,
+// drain 0.4 (rest 0) to 0.12 (rest 1) of idle, and how slow it is to notice things while resting (think interval
+// 15 + deepRest x rest gene). A natural trade-off: deep resters save energy but react late to prey and predators.
+const __restF = J0.deepRest != null ? '(0.4 - 0.28 * s.g[G.rest])' : '0.4';
+rep("s.action === 'rest' || s.action === 'farm' || s.working ? 0.4 : 1)", `s.action === 'rest' ? (s.g[G.diet] > 0.66 ? ${__restF} * ${J0.restX || 1} : ${__restF}) : s.action === 'farm' || s.working ? 0.4 : 1)`);
+if (J0.deepRest != null) rep("s.action === 'rest' || s.inShelter ? 15 :", `s.action === 'rest' ? 15 + ${J0.deepRest} * s.g[G.rest] : s.inShelter ? 15 :`);
 // breeding diagnostics + gestation prototype hooks; concX scales a carnivore's breeding (conception) threshold
 rep('this.breedAt = 0.35 + 0.6 * g[G.breedThreshold];', `this.breedAt = (0.35 + 0.6 * g[G.breedThreshold]) * (g[G.diet] > 0.66 ? ${J0.concX || 1} : 1);`);
 inj('  breed(a, b) {', '\n    if (__breedStart(a, b)) return;');

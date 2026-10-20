@@ -108,8 +108,20 @@ Base for this round: fair + lurk. Each row is 8 runs on the same designs; bodyCo
   - base → base + EV: lineage-ticks +54% (both extinct).
 - **Note:** no arm "grows" past 10 founders, but 10 carnivores per herd of 150–500 is already a 2–6% predator share. Persistence over a long run is the better success test.
 
+### Round 7 (done 2026-10-20): 15k-tick persistence (8 runs each; one batch was stopped once by the memory guard and resumed)
+| Arm | Alive at 15k | Median life | Intake / upkeep / breeding / attacks |
+|---|---|---|---|
+| full: world rules + restX 0.3 + ambush + EV | **3/8** | 13.1k | 90 / 77 / 19 / 5 |
+| no restX: world rules + ambush + EV | 0/8 | 6.2k | 95 / 88 / 19 / 6 |
+| natural: ambush + EV, default costs | 0/8 | 4.8k | 72 / 71 / 14 / **19** |
+
+(World rules = attackCost 0.5, full corpses, rot 3000.)
+- **What's left:** the carnivore-only cheap resting (restX) and the attack cost. At default attackCost, attacks cost 19 per 1k.
+- attackCost is a world slider, and arguably it double-charges, since the sprint is already paid as movement.
+- restX needs a natural form: now testing **deep rest**, where the rest gene also sets rest depth (drain 0.4 → 0.12 of idle) with a reaction-time trade-off (think interval 15 → 15 + 45 × rest). It applies to every simlet.
+
 ### Next step (running)
-- 15k-tick persistence test: full (fair + ambush + EV), without restX (the carnivore-only cheap resting), and natural (ambush + EV only, default costs). Results in `snaps/res10.jsonl`.
+- `snaps/jobs11.json`: deep rest with the trade-off (45) vs without it (0), on world rules + ambush + EV, 15k ticks.
 
 ### Joe's ideas on the table
 - **Gestation** (prototyped): conceive, pay into the litter from intake over a gene-set period, and babies born at consistent energy.
