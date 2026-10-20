@@ -40,9 +40,24 @@ Last updated: 2026-10-20.
 - The deficit is about 27 per 1k carn-ticks. Cutting sprints alone can't close it; making waiting cheap (idle at rest rate) plus less roaming plausibly could (inferred, about 20).
 - Oddity, not yet checked: carnivores spend 12–36% of ticks on the shelter action, but little of that is spent inside.
 
+### Lurk prototype (done 2026-10-20, arena option `lurk`, 8 paired runs per arm, same designs/worlds as above)
+- **Rule:** a carnivore that sees no prey, food or threat and would otherwise wander, track, recall or rest waits motionless (rest action) on any tile where it smells plant-eaters. After 400 ticks without seeing prey it gives up and roams for 200 ticks.
+- **Result: it helps, but it isn't enough on its own.**
+
+  | Arm | Alive at 6k | Median life | Births/founder | Upkeep | Intake | Kills per 1k |
+  |---|---|---|---|---|---|---|
+  | fair | 1/8 | 4,600 | 0.8 | 89 | 79 | 5.5 |
+  | fair + lurk | 3/8 | 5,950 | 1.2 | 80 | 80 | 5.2 |
+  | fair + gest + lurk | 1/8 | 4,150 | 0.4 | 76 | 74 | 4.0 |
+  | base + lurk (vs base) | 0/8 (0/8) | 2,850 (1,260) | 0.5 (0.3) | 86 (92) | 76 (59) | 3.7 (3.6) |
+
+- Lurking takes about 12% of carnivore ticks. It cut upkeep by about 9 per 1k ticks without costing kills, so upkeep now about equals intake. Breeding (13) and attacks (6) are still unpaid, so no lineage grew past its 10 founders.
+- **Gestation hurt when combined with lurk.** Drop it in its current form.
+- Idle drain while active is still the biggest item (about 30 of 80). Carnivores spend about 18% of ticks eating and about 20% on the shelter action.
+
 ### Next step
-1. Prototype **lurk** in the arena: a carnivore with no prey in view waits (rest-rate drain, camouflaged) where herbivores feed, instead of recall/track/wander. Compare against fair and fair+gest on the same 8 designs × 4 worlds.
-2. Check the shelter oddity (time on the shelter action that isn't spent inside).
+1. Check the shelter oddity: does time on the shelter action pay full idle drain while walking home?
+2. Widen lurk: wait instead of walking home or recalling, and/or tune the patience settings. Look for the remaining ~20 per 1k ticks.
 3. Only then build it into the game properly. That means a gene, saves, the inspector, tips, and a herbivore balance re-check.
 
 ### Joe's ideas on the table

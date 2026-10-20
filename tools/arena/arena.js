@@ -51,6 +51,11 @@ inj('  breed(a, b) {', '\n    if (__breedStart(a, b)) return;');
 inj('    this.births += born;', ' __breedEnd(a, b, born);');
 inj('  onDeath(s) {', ' __death(s);');
 inj('function act(s, sim) {', '\n  __act(s);');
+// lurk prototype (job.lurk): a lineage carnivore that sees no prey, food or threat and would otherwise wander, track,
+// recall or rest instead waits motionless (the rest action: rest-rate drain, camouflage intact, re-thinks every 15 ticks)
+// wherever it can smell plant-eaters on its own tile. Patience: after LURK_MAX ticks of waiting without seeing prey it
+// roams normally for LURK_MOVE ticks before it may lurk again.
+inj('  s.scores = sc;', '  best = __lurk(s, best, prey, food, threat, tick);\n', true);
 // upkeep split: movement cost by action (sprint marked *), idle drain split into base (rest / active / indoors) and winter cold
 rep('  s.energy -= P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1);', '  { const __c = P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1); s.energy -= __c; __mv(s, __c); }');
 inj('  s.energy -= P.idleCost * s.drainMult', '  const __e1 = s.energy;\n', true);
@@ -61,7 +66,7 @@ const rand = () => { st = (st + 0x6D2B79F5) >>> 0; let t = st; t = Math.imul(t ^
 const M = Object.create(Math); M.random = rand;
 const ctx = vm.createContext({ console, Math: M, performance });
 const noop = () => {}; Object.assign(ctx, { __think: noop, __atk: noop, __kill: noop, __bite: noop, __corpse: noop,
-  __breedStart: () => false, __breedEnd: noop, __death: noop, __act: noop, __mv: noop, __idle: noop });
+  __breedStart: () => false, __breedEnd: noop, __death: noop, __act: noop, __mv: noop, __idle: noop, __lurk: (s, b) => b });
 vm.runInContext(src + '\nObject.assign(this,{Sim,World,P,G,Food,Save,Species,Simlet,similarity,mutateGenome,newBrain,TERRAIN,MATURE_AGE,GENES,WORLD_W,WORLD_H});', ctx);
 const { Sim, World, P, G, Save } = ctx;
 const isCarn = s => s.g[G.diet] > 0.66;
@@ -168,8 +173,20 @@ ctx.__death = s => {
   R.deadStore += s.energy + (s.stomach || 0);
   if (lastBred.has(s.id) && Sim.tick - lastBred.get(s.id) < 500) R.parentDeathAfterBreed++;
 };
+const LURK = !!job.lurk, LURK_MAX = job.lurkMax || 400, LURK_MOVE = job.lurkMove || 200;
+const LK = { thinks: 0, ticks: 0, giveUps: 0, sawPrey: 0 };
+if (LURK) ctx.__lurk = (s, best, prey, food, threat, tick) => {
+  if (!inL(s) || !isCarn(s)) return best;
+  if (prey || food || threat) { if (s.lurkT0 != null) { if (prey) LK.sawPrey++; s.lurkT0 = null; } return best; }
+  if (best !== 'wander' && best !== 'track' && best !== 'recall' && best !== 'rest') { s.lurkT0 = null; return best; }
+  if (s.lurkOff > tick) return best;                                   // roaming after giving up
+  if (World.scentAt(s.x, s.y) <= s.scentThreshold) { s.lurkT0 = null; return best; }   // nothing to wait for here
+  if (s.lurkT0 == null) s.lurkT0 = tick;
+  if (tick - s.lurkT0 > LURK_MAX) { s.lurkT0 = null; s.lurkOff = tick + LURK_MOVE; LK.giveUps++; return best; }
+  LK.thinks++; s.lurking = true; return 'rest';
+};
 const U = { move: {}, ticks: {}, idleRest: 0, idleActive: 0, idleInside: 0, cold: 0 };
-ctx.__mv = (s, c) => { if (!inL(s)) return; const k = s.action + (s.sprinting ? '*' : ''); U.move[k] = (U.move[k] || 0) + c; U.ticks[k] = (U.ticks[k] || 0) + 1; };
+ctx.__mv = (s, c) => { if (!inL(s)) return; if (s.lurking) { if (s.action === 'rest') LK.ticks++; else s.lurking = false; } const k = s.action + (s.sprinting ? '*' : ''); U.move[k] = (U.move[k] || 0) + c; U.ticks[k] = (U.ticks[k] || 0) + 1; };
 ctx.__idle = (s, c, cold, inside) => {
   if (!inL(s)) return;
   const base = c / (1 + cold); U.cold += c - base;
@@ -201,6 +218,7 @@ console.log(JSON.stringify({ id: job.id, arm: job.arm, snap: path.basename(job.s
   meatE: +R.meatE.toFixed(1), atkE: +R.atkE.toFixed(1), corpseE: +R.corpseE.toFixed(1), eatSelf: +R.eatSelf.toFixed(1), eatHerb: +R.eatHerb.toFixed(1), eatOmni: +R.eatOmni.toFixed(1), eatCarnOther: +R.eatCarnOther.toFixed(1), meanKillMass: R.kills ? +(R.killMass / R.kills).toFixed(2) : null, plantE: +R.plantE.toFixed(1), deaths: R.deaths,
   meanDietEnd: alive.length ? +(alive.reduce((a, s) => a + s.g[G.diet], 0) / alive.length).toFixed(3) : null,
   // breeding diagnostics and energy ledger (lineage totals; upkeep = everything not otherwise accounted for)
+  lurk: LURK ? LK : undefined,
   upkeepSplit: { move: Object.fromEntries(Object.entries(U.move).map(([k, v]) => [k, +v.toFixed(1)])), ticks: U.ticks,
     idleRest: +U.idleRest.toFixed(1), idleActive: +U.idleActive.toFixed(1), idleInside: +U.idleInside.toFixed(1), cold: +U.cold.toFixed(1) },
   conceptions: R.conceptions, litters: R.litters, stillborn: R.stillborn, gestAborted: R.gestAborted, gestLost: R.gestLost, matured: R.matured,
