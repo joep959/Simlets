@@ -120,8 +120,20 @@ Base for this round: fair + lurk. Each row is 8 runs on the same designs; bodyCo
 - attackCost is a world slider, and arguably it double-charges, since the sprint is already paid as movement.
 - restX needs a natural form: now testing **deep rest**, where the rest gene also sets rest depth (drain 0.4 → 0.12 of idle) with a reaction-time trade-off (think interval 15 → 15 + 45 × rest). It applies to every simlet.
 
-### Next step (running)
-- `snaps/jobs11.json`: deep rest with the trade-off (45) vs without it (0), on world rules + ambush + EV, 15k ticks.
+### Round 8 (done 2026-10-20): deep rest (rest gene sets rest depth; every simlet)
+| Arm (15k ticks, world rules + ambush + EV) | Alive | Median life |
+|---|---|---|
+| no restX (from round 7) | 0/8 | 6.2k |
+| deep rest, no reaction penalty | 0/8 | 8.3k |
+| deep rest + reaction penalty (45) | 1/8 | 8.9k |
+| full (restX 0.3, carnivore-only; from round 7) | 3/8 | 13.1k |
+
+- Deep rest recovers about half of what restX gave. The arena **understates gene-driven levers**: its 8 designs are fixed random genomes (rest gene anywhere from 0.01 to 0.94), so selection can't tune them.
+- Prey hit the 1,500 population cap on two worlds while carnivores still died out. Prey supply isn't the limit; a carnivore's own economics are.
+- **Conclusion:** the natural package is prey choice by expected energy + ambush (camo-weighted) + deep rest (rest gene) + a lower world attackCost. It needs an **evolution test**: carnivores founded and mutating in a full headless run, not fixed designs.
+
+### Next step
+- Joe to approve: prototype the natural package in the sim code on a branch (`carnivore-natural`) and run seeded headless evolution runs against main. The game UI isn't touched until it works.
 
 ### Joe's ideas on the table
 - **Gestation** (prototyped): conceive, pay into the litter from intake over a gene-set period, and babies born at consistent energy.
