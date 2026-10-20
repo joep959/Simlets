@@ -301,7 +301,11 @@ function think(s, sim) {
       s.target = prey;
       break;
     }
-    case 'eat':    toward(food.x, food.y); speed = ms * 0.75; s.target = food; break;
+    case 'eat': {                                   // already within reach: stand still and keep facing the same way
+      const d = toward(food.x, food.y); s.target = food;
+      speed = d < s.radius + 0.5 ? 0 : ms * 0.75;
+      break;
+    }
     case 'recall': toward(mem.x, mem.y);   speed = ms * 0.75; s.target = mem;  break;
     case 'breed':  toward(mate.x, mate.y); speed = ms * 0.75; s.target = mate; break;
     case 'clone':  sim.breed(s, null); break;             // asexual: buds off offspring on the spot
@@ -362,7 +366,7 @@ function think(s, sim) {
         if (World.wet(s.x + Math.cos(a) * 2.5, s.y + Math.sin(a) * 2.5)) { vx -= Math.cos(a) * w; vy -= Math.sin(a) * w; }
       }
     }
-    const m = 3;                                   // soft walls
+    const m = best === 'eat' ? 0 : 3;              // soft walls (off when heading for food, which is always on the map)
     if (s.x < m) vx += (m - s.x) / m * 2; if (s.x > WORLD_W - m) vx -= (s.x - WORLD_W + m) / m * 2;
     if (s.y < m) vy += (m - s.y) / m * 2; if (s.y > WORLD_H - m) vy -= (s.y - WORLD_H + m) / m * 2;
     if (vx !== 0 || vy !== 0) s.desired = Math.atan2(vy, vx);
