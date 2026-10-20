@@ -97,8 +97,19 @@ Base for this round: fair + lurk. Each row is 8 runs on the same designs; bodyCo
 - **Kill value:** a kill is about 21 energy, and only about 18% of that is body (bodyCost × mass). The rest is the prey's stored energy, so bodyCost is a weak lever on meal size. Plant-eaters eat 9–13% of carnivore kills.
 - **Design spread:** across all runs the 8 random designs range 2.6× in lineage-ticks (12k–33k). Bigger bodies and higher breeding thresholds lived longer; low thresholds gave more births but shorter lives (inferred from 8 designs only).
 
-### Next step
-- Joe to decide. Open levers: pack/kin kill sharing; whether prey are too small (no predation pressure → median mass 0.6); evolving carnivores from omnivores in a full run rather than dropping random designs.
+### Round 6 (done 2026-10-20): meal size and prey choice. **The best lead so far.**
+- **Prey-size probe** (`preySize`: every plant-eater resized, then a 3,000-tick settle):
+  - prey mass 1.5: 6/8 alive, births per founder 1.3, intake 82 > upkeep 73 (the first surplus).
+  - prey mass 2.25: worse (2/8): kill rate falls to 44% and kills halve.
+  - **So there's a sweet spot:** meals worth having, prey still killable.
+- **Today's prey choice is anti-optimal:** the score has a size factor min(1/sizeRatio, 2), so the smallest prey always wins. Win chance is about the strength ratio and the meal grows with prey mass, so expected value *rises* with prey size.
+- **Prey-EV probe** (`preyEV`): the size factor becomes clamp(EV / scale, 0, 2), with EV = P(win) × corpse × meatEff − attack cost. It's the same optimal-foraging logic plants already use, and it applies to every simlet.
+  - amb → amb + EV (scale 8): alive 2/8 → 5/8, lineage-ticks 198k → 260k, births 81 → 123, carnivores alive at the end 4 → 15. Kill mass 0.93 → 1.45; corpse per kill 24 → 39.
+  - base → base + EV: lineage-ticks +54% (both extinct).
+- **Note:** no arm "grows" past 10 founders, but 10 carnivores per herd of 150–500 is already a 2–6% predator share. Persistence over a long run is the better success test.
+
+### Next step (running)
+- 15k-tick persistence test: full (fair + ambush + EV), without restX (the carnivore-only cheap resting), and natural (ambush + EV only, default costs). Results in `snaps/res10.jsonl`.
 
 ### Joe's ideas on the table
 - **Gestation** (prototyped): conceive, pay into the litter from intake over a gene-set period, and babies born at consistent energy.

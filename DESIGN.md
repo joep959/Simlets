@@ -390,6 +390,7 @@ Simlets used to stand in fires and wade about in floods because nothing told the
 - **Brain rework:** more raw senses (counts of food, kin and threats by direction, terrain), more weight to the brain over the rules, and memory (a simple recurrent brain, not an LSTM).
 - **Meta-optimisation:** an outer optimiser (CMA-ES or Bayesian optimisation preferred over a plain GA, since runs are noisy and costly) tunes world parameters with seeded headless runs (tools/landprobe.js). The score should reward carnivores persisting alongside herbivores, plus diversity, to avoid degenerate worlds.
 - **Land rework phase 2:** fully continuous food (soil × moisture) instead of the 3 derived types, if they feel steppy. More tile types are now cheap (§14a).
+- **Carnivore flavour, not the fix (Joe, 20 Oct 2026):** a stomach (gorge, then digest slowly, with lethargy when full) and gestation (pay into the litter over time). Tested cleanly in the arena: together they raise lineage survival (4/8 vs 2/8) but not births, so they are realism features, to add after the main carnivore fix (STATUS.md round 5).
 - **Remote view (maybe):** the PC runs the simulation and the phone only displays it, if phone performance disappoints.
 
 **Playtest notes still open:**

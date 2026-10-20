@@ -61,6 +61,12 @@ inj('  s.scores = sc;', '  best = __lurk(s, best, prey, food, threat, tick);\n',
 // exp(-waited / patience), mirroring the track score (which uses the smell gene). Plant-eaters score ~0; the camo gene
 // decides how much a meat-eater prefers waiting to tracking, so evolution can select for it.
 inj("  let best = 'wander';", '  __amb(s, sc, prey, drive, tick);\n', true);
+// preyEV (job.preyEV = scale): prey choice by expected net energy instead of "smaller is better". The size factor
+// min(1/sizeRatio, 2) becomes clamp(EV / scale, 0, 2), EV = P(win) x meal x meatEff - attack cost, with
+// P(win) = the attack's strength ratio and meal = the corpse the prey would leave. For every simlet (a world rule).
+if (J0.preyEV) rep('    const ps = dis * Math.min(1 / sizeRatio, 2) * closeness', `    const __sa = s.mass * (0.5 + 0.5 * s.energy / s.maxEnergy), __sd = o.mass * (0.5 + 0.5 * o.energy / o.maxEnergy);
+    const __ev = __sa / (__sa + __sd) * (P.bodyCost * o.mass * ${J0.corpseBody || 0.9} + Math.max(0, o.energy) * ${J0.corpseStore || 0.8}) * s.meatEff - P.attackCost * Math.pow(s.mass, 0.75);
+    const ps = dis * clamp(__ev / ${J0.preyEV}, 0, 2) * closeness`);
 // eatRest: a simlet standing at its food (eating) drains at the resting rate, for every simlet (a world rule)
 rep("s.action === 'farm' || s.working ? 0.4 : 1)", `s.action === 'farm' || s.working || (${!!J0.eatRest} && s.action === 'eat' && s.moveSpeed === 0) ? 0.4 : 1)`);
 // upkeep split: movement cost by action (sprint marked *), idle drain split into base (rest / active / indoors) and winter cold
@@ -96,6 +102,12 @@ if (cmd === 'grow') {
 const job = JSON.parse(process.argv[4]);
 Save.restore(JSON.parse(fs.readFileSync(job.snap, 'utf8')));
 Object.assign(P, { eventsOn: 0, immigration: 0 }, job.params || {});
+// prey-size probe (job.preySize = size gene for every plant-eater; keeps each one's fill fraction, so it is not energy
+// conserving at the moment of the change), then job.settle ticks so the herd adjusts before the carnivores arrive
+if (job.preySize != null) for (const s of Sim.simlets) if (s.g[G.diet] < 0.66) { const f = s.energy / s.maxEnergy; s.g[G.size] = job.preySize; s.derive(); s.energy = f * s.maxEnergy; }
+for (let i = 0; i < (job.settle || 0); i++) Sim.step();
+const preyStat = () => { const p = Sim.simlets.filter(s => s.g[G.diet] < 0.66); return { n: p.length, mass: p.length ? +(p.reduce((a, s) => a + s.mass, 0) / p.length).toFixed(2) : null }; };
+const preyAtDrop = preyStat();
 const K = job.K || 10, T = job.ticks || 6000, t0 = Sim.tick;
 // herd centre: the plant-eater with most plant-eater neighbours within 8 tiles (sampled)
 const prey = Sim.simlets.filter(s => s.g[G.diet] < 0.66);
@@ -229,7 +241,7 @@ for (let i = 0; i < T; i++) {
 }
 const alive = Sim.simlets.filter(inL);
 console.log(JSON.stringify({ id: job.id, arm: job.arm, snap: path.basename(job.snap), place: job.place, genome: job.genome, K, T,
-  aliveEnd: alive.length, extinctAt, peak: R.peak, births: R.births, founderKids: R.founderKids, carnTicks: R.carnTicks,
+  preyAtDrop, preyEnd: preyStat(), aliveEnd: alive.length, extinctAt, peak: R.peak, births: R.births, founderKids: R.founderKids, carnTicks: R.carnTicks,
   thinks: R.thinks, realPrey: R.realPrey, kinPrey: R.kinPrey, acts: R.acts, attacks: R.attacks, kills: R.kills, kinKills: R.kinKills,
   meatE: +R.meatE.toFixed(1), atkE: +R.atkE.toFixed(1), corpseE: +R.corpseE.toFixed(1), eatSelf: +R.eatSelf.toFixed(1), eatHerb: +R.eatHerb.toFixed(1), eatOmni: +R.eatOmni.toFixed(1), eatCarnOther: +R.eatCarnOther.toFixed(1), meanKillMass: R.kills ? +(R.killMass / R.kills).toFixed(2) : null, plantE: +R.plantE.toFixed(1), deaths: R.deaths,
   meanDietEnd: alive.length ? +(alive.reduce((a, s) => a + s.g[G.diet], 0) / alive.length).toFixed(3) : null,
