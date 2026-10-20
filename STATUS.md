@@ -73,11 +73,18 @@ Base for this round: fair + lurk. Each row is 8 runs on the same designs; bodyCo
 - Idle drain by action (fair): hunting 12, eating 9; the rest are small.
 - **Picture:** carnivores now break even (upkeep ≈ intake), but nothing is left to pay for offspring (breeding 13–16 + attacks 6 per 1k).
 
-### Next step
-- Joe to choose the direction (see the session summary). Candidates: richer bodies (bodyCost about 6–7) as a world setting; lurk as a gene-scored action; breeding economics (smaller or more frequent litters); pack/kin kill sharing.
+### Round 4 (done 2026-10-20): ambush as a *scored, gene-weighted* option (arena `ambush`), plus a bodyCost series
+- **Score:** waiting where it smells plant-eaters scores 1.5 × scent here × meatEff × drive × (0.5 + camo) × exp(−waited/1000). It mirrors the track score, and it applies to every simlet; plant-eaters score about 0.
+- **Ambush (scored) works as well as forced lurk.** Fair vs fair + ambush: lineage-ticks 150k → 221k (+47%), alive 1/8 → 3/8, births per founder 0.8 → 1.1. Carnivores choose it about 23% of the time. Still no sustained growth.
+- **bodyCost 5/6/7 is inconclusive:** each setting needs regrown worlds, and the map lottery swamps it (seed 13 grows herds of 187 / 54 / 814). bodyCost 7 looked best and 6 looked worst, so it isn't a trend. **Not a proven lever.**
+- **Eating behaviour (Joe saw "spinning"):** measured on snap13 over 2k ticks:
+  - While at its food, a simlet turns about 0.07 rad/tick and shuffles 0.02 tiles/tick. Inferred cause: every 5-tick re-think, `eat` aims at food it is standing on and takes one step before stopping.
+  - Food within 1 tile of the map edge is reached only 20% of eating time, vs 63% elsewhere. Inferred cause: the soft-wall push (up to 2) outweighs the pull toward food (1).
+  - Not fixed.
+- **Save bug fixed** (commit 1616cb3): food is clamped inside the map on load.
 
-### Bug found (not fixed)
-- `Save.serialize` rounds positions to 4 dp (`r4`). A food item at y = 124.99996 saves as 125.0 (= WORLD_H), and **loading that save crashes** in `Food.add` (cell index out of range). Hit in an arena snapshot; that copy has been patched.
+### Next step
+- Joe to decide: (a) fix eat steering and the edge trap; (b) build ambush into the game as a scored action; (c) the remaining gap is breeding cost, so explore breeding economics or pack/kin kill sharing.
 
 ### Joe's ideas on the table
 - **Gestation** (prototyped): conceive, pay into the litter from intake over a gene-set period, and babies born at consistent energy.
