@@ -65,5 +65,5 @@ Personal play/learning project of Joe's (not Paradigm work, so no confidentialit
   - events rare: Joe found them far too frequent at first
   - floods destroy fields, houses and trees
   - the phone runs the sim itself, served from the PC
-- **Next and docket:** DESIGN.md §13 (carnivores: see STATUS.md, then performance pass, then a big feature; hazard sensing is built).
-- **Known weak spot:** carnivore persistence: current work, see `STATUS.md` (findings in DESIGN.md §12). Use the arena (controlled drops, stage-by-stage ledger, paired 8-run setups) for balance questions rather than long end-to-end lottery runs.
+- **Next and docket:** DESIGN.md §13 (carnivores: see STATUS.md, then performance pass, then a big feature; hazard sensing is built). Stomach and gestation are docketed as later realism features.
+- **Known weak spot:** carnivore persistence: current work, see `STATUS.md` (findings in DESIGN.md §12). Use the arena (controlled drops, stage-by-stage ledger, paired 8-run setups) for balance questions rather than long end-to-end lottery runs. Its fixed designs can't show gene-driven levers paying off; use evolution runs for those. **Joe's principle:** carnivores must emerge from world and gene rules. Arena overrides are probes only.

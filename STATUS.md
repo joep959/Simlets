@@ -7,7 +7,24 @@ Last updated: 2026-10-20.
 
 **Goal (Joe):** carnivores that found and persist on their own, by a *sustainable* rule. "Sustainable" means it respects energy conservation: only plant growth and farming create energy. Non-conserving levers are only for measuring sensitivity.
 
-**State:** investigating with the predator arena. **No game code has been changed for this yet.** Everything so far is test tooling (`tools/arena/`) and findings (DESIGN.md §12, "Investigation, 19 Oct 2026").
+**State (end of 20 Oct 2026):** the arena work is done for now. **No carnivore rule has gone into the game yet.** Game code changed today only for two bug fixes: food on the map edge crashing a save on load, and simlets spinning or circling while eating.
+
+**Summary (details in the rounds below):**
+- Upkeep isn't sprinting; it's idle drain while awake. Today's prey choice picks the *smallest* prey, so meals are tiny.
+- **Candidate natural package** (all world/gene rules, nothing forced):
+  - prey choice by expected energy (+50% lineage life; the biggest single lever)
+  - ambush scored by the camo gene
+  - deep rest set by the rest gene
+  - a lower world attackCost (default attacks cost 19 per 1k carnivore-ticks)
+- With a carnivore-only cheap-rest crutch, 3/8 lineages persist 15k ticks. The natural deep-rest version recovers about half of that.
+- The arena uses fixed random designs, so it can't show gene-driven levers paying off. The next test needs evolution.
+- **Dropped / docketed:**
+  - bodyCost: inconclusive; only ~18% of a kill is body.
+  - fewer founders: worse.
+  - eating at rest rate: no gain.
+  - Kleiber scaling: an earlier dead end.
+  - stomach and gestation: realism features for later (DESIGN §13); they don't fix births.
+- **Next (awaiting Joe's go):** prototype the natural package in the sim code on branch `carnivore-natural`, then run seeded headless evolution runs against main.
 
 ### What we know (measured)
 - **Finding and catching prey works.** Even dropped beside a herd, carnivores see prey on about 50% of decisions, and about 55% of attacks kill.

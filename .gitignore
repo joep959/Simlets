@@ -1,3 +1,4 @@
 tools/arena/*.json
 tools/arena/*.jsonl
 tools/arena/*.log
+tools/arena/snaps/

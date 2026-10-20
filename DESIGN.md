@@ -365,6 +365,13 @@ Simlets used to stand in fires and wade about in floods because nothing told the
     - *Rule tests* (8 paired runs each, edge drop, energy per 1k carnivore-ticks): base 58 intake / 0.4 births per founder; attack cost ×0.25 doubles lifespan but no more births; meat ×2 (not conserving) 1.0 births; **meat ×3 + cheap attacks: 6/8 alive, 1.5 births per founder** (the threshold). Energy-conserving bundles (cheap attacks, full corpses, slower rot, cheaper resting, a digesting stomach) triple lifespan but births stay low. A bigger carnivore tank is a trap: breeding triggers at a fraction of the tank, so they never breed. **Caveats:** the meat ×3, bundle and stomach runs had a script bug (founders all started newborn, so births are understated; comparisons within those runs are fair), and no arena run before the determinism fix was truly paired (drop spot and founder ages were unseeded). Only the large effects above should be trusted.
     - *Breeding diagnostics + gestation prototype* (40 runs): under today's rules 81% of litters are followed by the parent dying within 500 ticks, and adults sit above their breeding threshold only 2% of the time. Gestation (pay into the litter over 600 ticks, never below 30% of the tank) cut parent deaths to 31% and kept 2/8 lineages alive, but births barely rose. **The energy ledger shows why: upkeep (~90–100 per 1k carnivore-ticks) exceeds intake (40–97) in every setup, before any breeding cost (11–17).** Next: split upkeep (rest / walk / chase / cold) and re-run deterministically.
     - **Diagnosis (inferred, being tested):** breeding charges a lump sum (half the parent's energy) once energy passes a threshold. That suits steady grazers and penalises feast-and-famine hunters, which are hungry 85–99% of the time. Next: **gestation** (Joe's idea): conceive, then pay into the litter from intake over a gene-set gestation period, babies born at consistent energy. Prototyping in the arena first.
+  - **Investigation, 20 Oct 2026** (arena; full round-by-round results in STATUS.md):
+    - **Upkeep split:** idle drain while awake is about 40% of upkeep; sprinting is only 16%. The chase-cost hypothesis was wrong.
+    - **Prey choice is anti-optimal:** the hunt score's size factor min(1/sizeRatio, 2) picks the smallest prey. Scoring prey by expected net energy instead (P(win) × corpse × meatEff − attack cost) raised kill mass 0.93 → 1.45 and lineage life by about 50%. A prey-size probe showed a sweet spot: mass 1.5 sustains carnivores, 2.25 is too hard to kill.
+    - **Ambush** (wait on prey scent at rest cost) adds about 50% lineage life. It works as well as a scored, camo-weighted option as it does forced.
+    - **No help:** stomach (carnivores are never full), gestation (most pregnancies starve), bodyCost (only ~18% of a kill is body), fewer founders, eating at the rest rate.
+    - **Best so far:** 3/8 lineages persist 15k ticks, but only with a carnivore-only cheap-rest crutch. Deep rest set by the rest gene recovers about half of that in fixed designs.
+    - **Next:** test the natural package (prey EV + camo ambush + rest-gene deep rest + lower attackCost) with evolution in full headless runs.
 - Behaviour rules are fixed; only their weights evolve. Evolved brains (neuroevolution) would be v2.
 - There are no sexes, so there's no real cost of sex.
 
@@ -380,7 +387,7 @@ Simlets used to stand in fires and wade about in floods because nothing told the
 - hazard sensing: fire and floodwater, Escape action, brain inputs (§9k)
 
 **Suggested next, in order:**
-1. **Carnivores (in progress):** gestation prototype in the predator arena, then the full rework if it lifts carnivore births (§12, 19 Oct investigation).
+1. **Carnivores (in progress):** prototype the natural package (§12, 20 Oct) on a branch and test it with evolution in headless runs. Then build it in properly: genes/tips, saves, inspector.
 2. **Performance pass:** large populations slow down because every think scans neighbours and food. It matters more now that phones run the simulation themselves (§15).
 3. **Then one of the big features below.**
 
