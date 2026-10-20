@@ -55,10 +55,29 @@ Last updated: 2026-10-20.
 - **Gestation hurt when combined with lurk.** Drop it in its current form.
 - Idle drain while active is still the biggest item (about 30 of 80). Carnivores spend about 18% of ticks eating and about 20% on the shelter action.
 
+### Round 3 probes (done 2026-10-20). **Joe: carnivores must *emerge*; arena overrides are probes only** (memory: emergent-not-forced)
+Base for this round: fair + lurk. Each row is 8 runs on the same designs; bodyCost 7 worlds are regrown, so they aren't paired with the others.
+
+| Probe | Alive | Grew | Births/founder | Upkeep / intake | Verdict |
+|---|---|---|---|---|---|
+| fair + lurk (patience 400) | 3/8 | 0 | 1.2 | 80 / 80 | baseline |
+| + patience 1500 | 5/8 | 0 | 1.0 | 80 / 79 | lives longer, doesn't grow |
+| + also wait instead of going home | 3–4/8 | 0 | 0.8–1.2 | same | no gain |
+| + 3 founders instead of 10 | 0/8 | 0 | 0.3 | 75 / 76 | worse: density isn't the problem |
+| + eat at rest rate (everyone) | 2/8 | 0 | 0.7 | 79 / 79 | no gain |
+| bodyCost 7, fair (no lurk) | 4/8 | 0 | 0.7 | 113 / 94 (median) | survival up |
+| bodyCost 7, fair + lurk 1500 | 3/8 | **1** | 0.9 | 87 / 79 (median) | first lineage that grew (14 alive, 44 births) |
+
+- bodyCost 10 collapses the herbivore worlds while growing (herds of 19–32), so it's too strong.
+- Shelter "oddity" resolved: most shelter time is spent inside at quarter drain. Walking home costs only about 2 per 1k.
+- Idle drain by action (fair): hunting 12, eating 9; the rest are small.
+- **Picture:** carnivores now break even (upkeep ≈ intake), but nothing is left to pay for offspring (breeding 13–16 + attacks 6 per 1k).
+
 ### Next step
-1. Check the shelter oddity: does time on the shelter action pay full idle drain while walking home?
-2. Widen lurk: wait instead of walking home or recalling, and/or tune the patience settings. Look for the remaining ~20 per 1k ticks.
-3. Only then build it into the game properly. That means a gene, saves, the inspector, tips, and a herbivore balance re-check.
+- Joe to choose the direction (see the session summary). Candidates: richer bodies (bodyCost about 6–7) as a world setting; lurk as a gene-scored action; breeding economics (smaller or more frequent litters); pack/kin kill sharing.
+
+### Bug found (not fixed)
+- `Save.serialize` rounds positions to 4 dp (`r4`). A food item at y = 124.99996 saves as 125.0 (= WORLD_H), and **loading that save crashes** in `Food.add` (cell index out of range). Hit in an arena snapshot; that copy has been patched.
 
 ### Joe's ideas on the table
 - **Gestation** (prototyped): conceive, pay into the litter from intake over a gene-set period, and babies born at consistent energy.

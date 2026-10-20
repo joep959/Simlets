@@ -1,5 +1,5 @@
 // Predator arena: a controlled test fixture for carnivore founders.
-//   node arena.js grow <repo> <seed> <out.json> [ticks]   grow a world (events + immigration off), strip its carnivores, snapshot it
+//   node arena.js grow <repo> <seed> <out.json> [ticks] ['{params}']   grow a world (events + immigration off, optional slider values), strip its carnivores, snapshot it
 //   node arena.js run  <repo> '<jobJSON>'                 load a snapshot, drop K designed carnivores, run, print one JSON line
 // job: { snap, seed, genome: [28 numbers], place: 'in'|'edge'|'far', K, ticks, brain: 'zero' }
 // Measures the founder lineage (founders + all descendants) stage by stage: encounter, capture, energy, breeding.
@@ -54,8 +54,10 @@ inj('function act(s, sim) {', '\n  __act(s);');
 // lurk prototype (job.lurk): a lineage carnivore that sees no prey, food or threat and would otherwise wander, track,
 // recall or rest instead waits motionless (the rest action: rest-rate drain, camouflage intact, re-thinks every 15 ticks)
 // wherever it can smell plant-eaters on its own tile. Patience: after LURK_MAX ticks of waiting without seeing prey it
-// roams normally for LURK_MOVE ticks before it may lurk again.
+// roams normally for LURK_MOVE ticks before it may lurk again. lurkWide: it also waits instead of walking home to a shelter.
 inj('  s.scores = sc;', '  best = __lurk(s, best, prey, food, threat, tick);\n', true);
+// eatRest: a simlet standing at its food (eating) drains at the resting rate, for every simlet (a world rule)
+rep("s.action === 'farm' || s.working ? 0.4 : 1)", `s.action === 'farm' || s.working || (${!!J0.eatRest} && s.action === 'eat' && s.moveSpeed === 0) ? 0.4 : 1)`);
 // upkeep split: movement cost by action (sprint marked *), idle drain split into base (rest / active / indoors) and winter cold
 rep('  s.energy -= P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1);', '  { const __c = P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1); s.energy -= __c; __mv(s, __c); }');
 inj('  s.energy -= P.idleCost * s.drainMult', '  const __e1 = s.energy;\n', true);
@@ -73,7 +75,7 @@ const isCarn = s => s.g[G.diet] > 0.66;
 
 if (cmd === 'grow') {
   const out = process.argv[5], T = +(process.argv[6] || 12000);
-  Object.assign(P, { eventsOn: 0, immigration: 0 });
+  Object.assign(P, { eventsOn: 0, immigration: 0 }, process.argv[7] ? JSON.parse(process.argv[7]) : {});
   World.generate(); Sim.seed();
   for (let i = 0; i < T; i++) Sim.step();
   const before = Sim.simlets.length;
@@ -173,23 +175,24 @@ ctx.__death = s => {
   R.deadStore += s.energy + (s.stomach || 0);
   if (lastBred.has(s.id) && Sim.tick - lastBred.get(s.id) < 500) R.parentDeathAfterBreed++;
 };
-const LURK = !!job.lurk, LURK_MAX = job.lurkMax || 400, LURK_MOVE = job.lurkMove || 200;
+const LURK = !!job.lurk, LURK_WIDE = !!job.lurkWide, LURK_MAX = job.lurkMax || 400, LURK_MOVE = job.lurkMove || 200;
 const LK = { thinks: 0, ticks: 0, giveUps: 0, sawPrey: 0 };
 if (LURK) ctx.__lurk = (s, best, prey, food, threat, tick) => {
   if (!inL(s) || !isCarn(s)) return best;
   if (prey || food || threat) { if (s.lurkT0 != null) { if (prey) LK.sawPrey++; s.lurkT0 = null; } return best; }
-  if (best !== 'wander' && best !== 'track' && best !== 'recall' && best !== 'rest') { s.lurkT0 = null; return best; }
+  if (best !== 'wander' && best !== 'track' && best !== 'recall' && best !== 'rest' && !(LURK_WIDE && best === 'shelter' && !s.inShelter)) { s.lurkT0 = null; return best; }
   if (s.lurkOff > tick) return best;                                   // roaming after giving up
   if (World.scentAt(s.x, s.y) <= s.scentThreshold) { s.lurkT0 = null; return best; }   // nothing to wait for here
   if (s.lurkT0 == null) s.lurkT0 = tick;
   if (tick - s.lurkT0 > LURK_MAX) { s.lurkT0 = null; s.lurkOff = tick + LURK_MOVE; LK.giveUps++; return best; }
   LK.thinks++; s.lurking = true; return 'rest';
 };
-const U = { move: {}, ticks: {}, idleRest: 0, idleActive: 0, idleInside: 0, cold: 0 };
+const U = { move: {}, ticks: {}, idleRest: 0, idleActive: 0, idleInside: 0, cold: 0, idleBy: {} };
 ctx.__mv = (s, c) => { if (!inL(s)) return; if (s.lurking) { if (s.action === 'rest') LK.ticks++; else s.lurking = false; } const k = s.action + (s.sprinting ? '*' : ''); U.move[k] = (U.move[k] || 0) + c; U.ticks[k] = (U.ticks[k] || 0) + 1; };
 ctx.__idle = (s, c, cold, inside) => {
   if (!inL(s)) return;
   const base = c / (1 + cold); U.cold += c - base;
+  const ak = s.action === 'shelter' ? (inside ? 'shelter:in' : 'shelter:out') : s.action; U.idleBy[ak] = (U.idleBy[ak] || 0) + base;
   if (inside) U.idleInside += base; else if (s.action === 'rest') U.idleRest += base; else U.idleActive += base;
 };
 for (const s of Sim.simlets) if (inL(s)) R.founderStart += s.energy;
@@ -220,7 +223,8 @@ console.log(JSON.stringify({ id: job.id, arm: job.arm, snap: path.basename(job.s
   // breeding diagnostics and energy ledger (lineage totals; upkeep = everything not otherwise accounted for)
   lurk: LURK ? LK : undefined,
   upkeepSplit: { move: Object.fromEntries(Object.entries(U.move).map(([k, v]) => [k, +v.toFixed(1)])), ticks: U.ticks,
-    idleRest: +U.idleRest.toFixed(1), idleActive: +U.idleActive.toFixed(1), idleInside: +U.idleInside.toFixed(1), cold: +U.cold.toFixed(1) },
+    idleRest: +U.idleRest.toFixed(1), idleActive: +U.idleActive.toFixed(1), idleInside: +U.idleInside.toFixed(1), cold: +U.cold.toFixed(1),
+    idleBy: Object.fromEntries(Object.entries(U.idleBy).map(([k, v]) => [k, +v.toFixed(1)])) },
   conceptions: R.conceptions, litters: R.litters, stillborn: R.stillborn, gestAborted: R.gestAborted, gestLost: R.gestLost, matured: R.matured,
   parentDeathAfterBreed: R.parentDeathAfterBreed, eligShare: R.adultTicks ? +(R.eligTicks / R.adultTicks).toFixed(3) : null,
   ledger: (() => { const stock = alive.reduce((a, s) => a + s.energy + (s.stomach || 0) + (s.gest ? s.gest.pool : 0), 0);
