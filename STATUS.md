@@ -83,8 +83,22 @@ Base for this round: fair + lurk. Each row is 8 runs on the same designs; bodyCo
   - Not fixed.
 - **Save bug fixed** (commit 1616cb3): food is clamped inside the map on load.
 
+### Round 5 (done 2026-10-20): stomach and gestation, re-tested cleanly on fair + scored ambush (after the eat-spin fix, commit 1048b52)
+| Arm | Alive | Lineage k-ticks | Births | Intake / upkeep / breeding (per 1k) |
+|---|---|---|---|---|
+| ambush | 2/8 | 198 | 81 | 73 / 75 / 14 |
+| + stomach (1 tank, 200-tick digest, ≤40% lethargy) | 2/8 | 153 | 62 | 83 / 86 / 16 |
+| + gestation 600 | 3/8 | 204 | 38 | 80 / 84 / 7 |
+| + both | 4/8 | 229 | 56 | 80 / 80 / 8 |
+
+- **Stomach doesn't help by itself.** Carnivores are almost never full, so the extra capacity is rarely used. It doesn't change how much of a kill the hunter gets (75%). Lethargy adds upkeep.
+- **Gestation trades births for parent survival.** Of 49 conceptions, 28 were lost because the parent died pregnant and 3 were aborted. Breeding spend halves only because fewer litters are born.
+- **Both together:** best survival so far (4/8), but fewer births than plain ambush. Net: neither fixes growth. Intake ≈ upkeep in every arm.
+- **Kill value:** a kill is about 21 energy, and only about 18% of that is body (bodyCost × mass). The rest is the prey's stored energy, so bodyCost is a weak lever on meal size. Plant-eaters eat 9–13% of carnivore kills.
+- **Design spread:** across all runs the 8 random designs range 2.6× in lineage-ticks (12k–33k). Bigger bodies and higher breeding thresholds lived longer; low thresholds gave more births but shorter lives (inferred from 8 designs only).
+
 ### Next step
-- Joe to decide: (a) fix eat steering and the edge trap; (b) build ambush into the game as a scored action; (c) the remaining gap is breeding cost, so explore breeding economics or pack/kin kill sharing.
+- Joe to decide. Open levers: pack/kin kill sharing; whether prey are too small (no predation pressure → median mass 0.6); evolving carnivores from omnivores in a full run rather than dropping random designs.
 
 ### Joe's ideas on the table
 - **Gestation** (prototyped): conceive, pay into the litter from intake over a gene-set period, and babies born at consistent energy.
