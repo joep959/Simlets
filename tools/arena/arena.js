@@ -56,6 +56,11 @@ inj('function act(s, sim) {', '\n  __act(s);');
 // wherever it can smell plant-eaters on its own tile. Patience: after LURK_MAX ticks of waiting without seeing prey it
 // roams normally for LURK_MOVE ticks before it may lurk again. lurkWide: it also waits instead of walking home to a shelter.
 inj('  s.scores = sc;', '  best = __lurk(s, best, prey, food, threat, tick);\n', true);
+// ambush (job.ambush = patience in ticks): a scored option, not an override, for every simlet. Standing where it smells
+// plant-eaters, with no prey in view, the rest action scores 1.5 x scent here x meatEff x drive x (0.5 + camo gene) x
+// exp(-waited / patience), mirroring the track score (which uses the smell gene). Plant-eaters score ~0; the camo gene
+// decides how much a meat-eater prefers waiting to tracking, so evolution can select for it.
+inj("  let best = 'wander';", '  __amb(s, sc, prey, drive, tick);\n', true);
 // eatRest: a simlet standing at its food (eating) drains at the resting rate, for every simlet (a world rule)
 rep("s.action === 'farm' || s.working ? 0.4 : 1)", `s.action === 'farm' || s.working || (${!!J0.eatRest} && s.action === 'eat' && s.moveSpeed === 0) ? 0.4 : 1)`);
 // upkeep split: movement cost by action (sprint marked *), idle drain split into base (rest / active / indoors) and winter cold
@@ -68,7 +73,7 @@ const rand = () => { st = (st + 0x6D2B79F5) >>> 0; let t = st; t = Math.imul(t ^
 const M = Object.create(Math); M.random = rand;
 const ctx = vm.createContext({ console, Math: M, performance });
 const noop = () => {}; Object.assign(ctx, { __think: noop, __atk: noop, __kill: noop, __bite: noop, __corpse: noop,
-  __breedStart: () => false, __breedEnd: noop, __death: noop, __act: noop, __mv: noop, __idle: noop, __lurk: (s, b) => b });
+  __breedStart: () => false, __breedEnd: noop, __death: noop, __act: noop, __mv: noop, __idle: noop, __lurk: (s, b) => b, __amb: noop });
 vm.runInContext(src + '\nObject.assign(this,{Sim,World,P,G,Food,Save,Species,Simlet,similarity,mutateGenome,newBrain,TERRAIN,MATURE_AGE,GENES,WORLD_W,WORLD_H});', ctx);
 const { Sim, World, P, G, Save } = ctx;
 const isCarn = s => s.g[G.diet] > 0.66;
@@ -177,6 +182,14 @@ ctx.__death = s => {
 };
 const LURK = !!job.lurk, LURK_WIDE = !!job.lurkWide, LURK_MAX = job.lurkMax || 400, LURK_MOVE = job.lurkMove || 200;
 const LK = { thinks: 0, ticks: 0, giveUps: 0, sawPrey: 0 };
+const AMB = job.ambush || 0;
+if (AMB) ctx.__amb = (s, sc, prey, drive, tick) => {
+  const here = World.scentAt(s.x, s.y);
+  if (prey || here <= s.scentThreshold) { s.ambT0 = null; return; }
+  if (s.ambT0 == null || s.action !== 'rest') s.ambT0 = tick;
+  const a = 1.5 * Math.min(1, here) * s.meatEff * drive * (0.5 + s.g[G.camo]) * Math.exp(-(tick - s.ambT0) / AMB);
+  if (a > sc.rest) { sc.rest = a; if (inL(s)) { LK.thinks++; s.lurking = true; } }
+};
 if (LURK) ctx.__lurk = (s, best, prey, food, threat, tick) => {
   if (!inL(s) || !isCarn(s)) return best;
   if (prey || food || threat) { if (s.lurkT0 != null) { if (prey) LK.sawPrey++; s.lurkT0 = null; } return best; }
@@ -221,7 +234,7 @@ console.log(JSON.stringify({ id: job.id, arm: job.arm, snap: path.basename(job.s
   meatE: +R.meatE.toFixed(1), atkE: +R.atkE.toFixed(1), corpseE: +R.corpseE.toFixed(1), eatSelf: +R.eatSelf.toFixed(1), eatHerb: +R.eatHerb.toFixed(1), eatOmni: +R.eatOmni.toFixed(1), eatCarnOther: +R.eatCarnOther.toFixed(1), meanKillMass: R.kills ? +(R.killMass / R.kills).toFixed(2) : null, plantE: +R.plantE.toFixed(1), deaths: R.deaths,
   meanDietEnd: alive.length ? +(alive.reduce((a, s) => a + s.g[G.diet], 0) / alive.length).toFixed(3) : null,
   // breeding diagnostics and energy ledger (lineage totals; upkeep = everything not otherwise accounted for)
-  lurk: LURK ? LK : undefined,
+  lurk: LURK || AMB ? LK : undefined,
   upkeepSplit: { move: Object.fromEntries(Object.entries(U.move).map(([k, v]) => [k, +v.toFixed(1)])), ticks: U.ticks,
     idleRest: +U.idleRest.toFixed(1), idleActive: +U.idleActive.toFixed(1), idleInside: +U.idleInside.toFixed(1), cold: +U.cold.toFixed(1),
     idleBy: Object.fromEntries(Object.entries(U.idleBy).map(([k, v]) => [k, +v.toFixed(1)])) },
