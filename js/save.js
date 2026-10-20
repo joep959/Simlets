@@ -85,8 +85,9 @@ const Save = {
     Object.assign(Shelters, { started: o.shelters.started, finished: o.shelters.finished, crumbled: o.shelters.crumbled, collapsed: o.shelters.collapsed });
     Shelters.ruins = new Map(o.shelters.ruins);
     for (const t of o.shelters.tiles) Shelters.tiles.set(t.ti, { ...t, owner: Float32Array.from(t.owner), x: t.ti % WORLD_W + 0.5, y: ((t.ti / WORLD_W) | 0) + 0.5, occ: 0 });
-    // food
-    for (const [x, y, e, e0, born, ready, type, rot] of o.food) Food.add({ x, y, e, e0, born, ready, type, rot: rot || 0 });
+    // food (positions are rounded on save, so one just inside the map edge can come back exactly on it: pull it back in)
+    for (const [x, y, e, e0, born, ready, type, rot] of o.food)
+      Food.add({ x: clamp(x, 0, WORLD_W - 1e-4), y: clamp(y, 0, WORLD_H - 1e-4), e, e0, born, ready, type, rot: rot || 0 });
     // simlets: rebuild through the constructor (re-derives body stats), then restore their state
     for (const d of o.simlets) {
       const s = new Simlet(Float32Array.from(d.g), d.x, d.y, d.energy, d.gen, d.parents);
