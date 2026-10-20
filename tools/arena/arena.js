@@ -51,13 +51,17 @@ inj('  breed(a, b) {', '\n    if (__breedStart(a, b)) return;');
 inj('    this.births += born;', ' __breedEnd(a, b, born);');
 inj('  onDeath(s) {', ' __death(s);');
 inj('function act(s, sim) {', '\n  __act(s);');
+// upkeep split: movement cost by action (sprint marked *), idle drain split into base (rest / active / indoors) and winter cold
+rep('  s.energy -= P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1);', '  { const __c = P.moveCost * s.mass * ref * ref * (inWater ? P.waterCost : 1); s.energy -= __c; __mv(s, __c); }');
+inj('  s.energy -= P.idleCost * s.drainMult', '  const __e1 = s.energy;\n', true);
+inj('  // camouflage: breaks with movement', '  __idle(s, __e1 - s.energy, cold, inside);\n', true);
 const seedArg = cmd === 'grow' ? +process.argv[4] : JSON.parse(process.argv[4]).seed;
 let st = seedArg >>> 0;
 const rand = () => { st = (st + 0x6D2B79F5) >>> 0; let t = st; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 const M = Object.create(Math); M.random = rand;
 const ctx = vm.createContext({ console, Math: M, performance });
 const noop = () => {}; Object.assign(ctx, { __think: noop, __atk: noop, __kill: noop, __bite: noop, __corpse: noop,
-  __breedStart: () => false, __breedEnd: noop, __death: noop, __act: noop });
+  __breedStart: () => false, __breedEnd: noop, __death: noop, __act: noop, __mv: noop, __idle: noop });
 vm.runInContext(src + '\nObject.assign(this,{Sim,World,P,G,Food,Save,Species,Simlet,similarity,mutateGenome,newBrain,TERRAIN,MATURE_AGE,GENES,WORLD_W,WORLD_H});', ctx);
 const { Sim, World, P, G, Save } = ctx;
 const isCarn = s => s.g[G.diet] > 0.66;
@@ -164,6 +168,13 @@ ctx.__death = s => {
   R.deadStore += s.energy + (s.stomach || 0);
   if (lastBred.has(s.id) && Sim.tick - lastBred.get(s.id) < 500) R.parentDeathAfterBreed++;
 };
+const U = { move: {}, ticks: {}, idleRest: 0, idleActive: 0, idleInside: 0, cold: 0 };
+ctx.__mv = (s, c) => { if (!inL(s)) return; const k = s.action + (s.sprinting ? '*' : ''); U.move[k] = (U.move[k] || 0) + c; U.ticks[k] = (U.ticks[k] || 0) + 1; };
+ctx.__idle = (s, c, cold, inside) => {
+  if (!inL(s)) return;
+  const base = c / (1 + cold); U.cold += c - base;
+  if (inside) U.idleInside += base; else if (s.action === 'rest') U.idleRest += base; else U.idleActive += base;
+};
 for (const s of Sim.simlets) if (inL(s)) R.founderStart += s.energy;
 let maxId = 0; for (const s of Sim.simlets) maxId = Math.max(maxId, s.id);
 const dead = new Set();
@@ -190,6 +201,8 @@ console.log(JSON.stringify({ id: job.id, arm: job.arm, snap: path.basename(job.s
   meatE: +R.meatE.toFixed(1), atkE: +R.atkE.toFixed(1), corpseE: +R.corpseE.toFixed(1), eatSelf: +R.eatSelf.toFixed(1), eatHerb: +R.eatHerb.toFixed(1), eatOmni: +R.eatOmni.toFixed(1), eatCarnOther: +R.eatCarnOther.toFixed(1), meanKillMass: R.kills ? +(R.killMass / R.kills).toFixed(2) : null, plantE: +R.plantE.toFixed(1), deaths: R.deaths,
   meanDietEnd: alive.length ? +(alive.reduce((a, s) => a + s.g[G.diet], 0) / alive.length).toFixed(3) : null,
   // breeding diagnostics and energy ledger (lineage totals; upkeep = everything not otherwise accounted for)
+  upkeepSplit: { move: Object.fromEntries(Object.entries(U.move).map(([k, v]) => [k, +v.toFixed(1)])), ticks: U.ticks,
+    idleRest: +U.idleRest.toFixed(1), idleActive: +U.idleActive.toFixed(1), idleInside: +U.idleInside.toFixed(1), cold: +U.cold.toFixed(1) },
   conceptions: R.conceptions, litters: R.litters, stillborn: R.stillborn, gestAborted: R.gestAborted, gestLost: R.gestLost, matured: R.matured,
   parentDeathAfterBreed: R.parentDeathAfterBreed, eligShare: R.adultTicks ? +(R.eligTicks / R.adultTicks).toFixed(3) : null,
   ledger: (() => { const stock = alive.reduce((a, s) => a + s.energy + (s.stomach || 0) + (s.gest ? s.gest.pool : 0), 0);

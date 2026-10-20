@@ -1,7 +1,7 @@
 # STATUS: where we are (read this first)
 
 Living handoff between sessions and machines. Update it whenever the current work changes, and commit it.
-Last updated: 2026-10-19.
+Last updated: 2026-10-20.
 
 ## Current work: make carnivores viable
 
@@ -32,10 +32,17 @@ Last updated: 2026-10-19.
   - "fixing" scent tracking: trails mark where herds lingered, and the extra running burns energy
   - easier conception: more pregnancies, but they're lost when the parent starves
 
-### Next step (agreed in principle, not yet run)
-1. **Split upkeep in the ledger** into rest, walk, chase (sprint) and cold, then re-run base / fair / fair+gestation deterministically.
-   - Hypothesis (inferred): chasing at speed is most of the upkeep. Movement cost rises with speed squared, and slow, low-sprint designs did best in the gene study.
-2. Depending on the result, the candidate fix is **how carnivores hunt** (for example ambush or "lurk": wait, camouflaged, where herbivores feed), with **gestation (Joe's idea)** kept as a supporting piece.
+### Upkeep split (done 2026-10-20, 24 paired runs: base / fair / fair+gest, `tools/arena/upkeep.js`)
+- **Hypothesis "chasing is most of the upkeep" is wrong.** Pooled, fair arm (upkeep 89 per 1k carn-ticks; intake 79; attacks 7; breeding 10):
+  - base idle drain while active: 36 (40%). Resting/indoors only 3; they rest about 10% of ticks.
+  - all hunting movement (walk + sprint + track): 22 (25%), of which sprint 14.5 (16%).
+  - other movement (to food, recall, shelter, wander, flee): 15. Other (building, alarms, injuries): 9. Winter cold: 4.
+- The deficit is about 27 per 1k carn-ticks. Cutting sprints alone can't close it; making waiting cheap (idle at rest rate) plus less roaming plausibly could (inferred, about 20).
+- Oddity, not yet checked: carnivores spend 12–36% of ticks on the shelter action, but little of that is spent inside.
+
+### Next step
+1. Prototype **lurk** in the arena: a carnivore with no prey in view waits (rest-rate drain, camouflaged) where herbivores feed, instead of recall/track/wander. Compare against fair and fair+gest on the same 8 designs × 4 worlds.
+2. Check the shelter oddity (time on the shelter action that isn't spent inside).
 3. Only then build it into the game properly. That means a gene, saves, the inspector, tips, and a herbivore balance re-check.
 
 ### Joe's ideas on the table
@@ -51,7 +58,7 @@ Snapshots and results aren't in git (too big), so regenerate them. From `tools/a
 node arena.js grow ../.. 11 snaps/snap11.json 12000      # and 13, 14, 16 (herds of 165-470; seeds 12 and 15 collapse)
 node makejobs.js snaps "{\"base\":{},\"fair\":{\"params\":{\"attackCost\":0.5},\"corpseBody\":1,\"corpseStore\":1,\"rot\":3000,\"restX\":0.3}}" jobs.json
 node runner.js jobs.json res.jsonl 6                      # resumable; about 15 min for 40 runs at 6 parallel
-node breeding.js res.jsonl                                # or analyze.js for stage rates and gene effects
+node breeding.js res.jsonl                                # or analyze.js (stage rates, gene effects), upkeep.js (where upkeep goes)
 ```
 - **Machine limits:** run at most about 6 in parallel, at below-normal priority. Joe's PC has 16 GB; Claude Code kills background jobs when memory runs low.
 - **Size batches to the question:** 8 paired runs per arm is enough for big effects. Joe found a multi-hour 300-run batch excessive.
